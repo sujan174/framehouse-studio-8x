@@ -114,7 +114,10 @@ describe("image generation ownership", () => {
       prompt: "A mossy courtyard", steps: 4, clientRequestId: crypto.randomUUID(),
     });
     const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xd9]);
-    await runOneGeneration(db, pool, async () => jpeg);
+    await runOneGeneration(db, pool, async (input) => {
+      expect(input).toEqual({ prompt: "A mossy courtyard", steps: 4 });
+      return jpeg;
+    });
     expect((await getGeneration(db, alice, project.id, first!.id))?.status).toBe("succeeded");
     expect(await getGenerationImage(db, alice, project.id, first!.id)).toEqual(jpeg);
     const second = await createGeneration(db, alice, project.id, {

@@ -12,7 +12,8 @@ describe("FLUX provider response", () => {
       seenBody = JSON.parse(String(init?.body));
       return Response.json({ success: true, result: { image: jpeg.toString("base64") } });
     };
-    expect(await generateFluxImage(input, credentials, fetcher)).toEqual(jpeg);
+    const rowLikeInput = { ...input, extraInternalField: "never send" };
+    expect(await generateFluxImage(rowLikeInput, credentials, fetcher)).toEqual(jpeg);
     expect(seenBody).toEqual(input);
   });
 

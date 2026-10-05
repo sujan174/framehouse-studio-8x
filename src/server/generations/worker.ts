@@ -24,7 +24,7 @@ export async function runOneGeneration(db: Database, pool: Pool, generate: Gener
     const job = await claimNextGeneration(db);
     if (!job) return null;
     try {
-      const image = await generate(job);
+      const image = await generate({ prompt: job.prompt, steps: job.steps });
       await finishGeneration(db, job.id, image);
     } catch (error) {
       const code: GenerationFailure = error instanceof ProviderError ? error.code : "provider_unavailable";

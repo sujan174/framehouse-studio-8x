@@ -27,7 +27,7 @@ export async function generateFluxImage(
           Authorization: `Bearer ${credentials.token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(input),
+        body: JSON.stringify({ prompt: input.prompt, steps: input.steps }),
         signal: AbortSignal.timeout(45_000),
         cache: "no-store",
       },
