@@ -500,7 +500,8 @@ p {
   font-weight: 600;
 }
 .studio-nav a:hover,
-.studio-nav a:focus-visible {
+.studio-nav a:focus-visible,
+.studio-nav a[aria-current="page"] {
   background: var(--raised);
   color: var(--text);
 }
@@ -515,6 +516,12 @@ p {
 .mobile-studio-head,
 .mobile-studio-nav {
   display: none;
+}
+.mobile-studio-nav a[aria-current="page"] {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 5px;
 }
 .studio-main {
   max-width: 1320px;

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { ArrowUpRight, Plus, FolderOpen } from "lucide-react";
@@ -17,7 +17,16 @@ export function ProjectList({
   const [title, setTitle] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const switching = !isLoaded || orgId !== serverOrgId;
+  function openCreate(event: React.MouseEvent<HTMLButtonElement>) {
+    triggerRef.current = event.currentTarget;
+    setOpen(true);
+  }
+  function closeCreate() {
+    setOpen(false);
+    requestAnimationFrame(() => triggerRef.current?.focus());
+  }
   async function create(e: React.FormEvent) {
     e.preventDefault();
     if (switching || pending) return;
@@ -38,7 +47,7 @@ export function ProjectList({
       if (orgId !== serverOrgId) return;
       setProjects((p) => [body.project, ...p]);
       setTitle("");
-      setOpen(false);
+      closeCreate();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not create project");
     } finally {
@@ -58,7 +67,7 @@ export function ProjectList({
             <p>
               {projects.length} {projects.length === 1 ? "project" : "projects"}
             </p>
-            <button className="button" onClick={() => setOpen(true)}>
+            <button className="button" onClick={openCreate}>
               <Plus size={18} /> New project
             </button>
           </div>
@@ -95,7 +104,7 @@ export function ProjectList({
                 Create a project to give your next idea a home. Your work stays
                 in this workspace.
               </p>
-              <button className="button" onClick={() => setOpen(true)}>
+              <button className="button" onClick={openCreate}>
                 <Plus size={18} /> Create first project
               </button>
             </div>
@@ -106,7 +115,7 @@ export function ProjectList({
         <div
           className="modal-backdrop"
           onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setOpen(false);
+            if (e.target === e.currentTarget) closeCreate();
           }}
         >
           <div
@@ -114,10 +123,31 @@ export function ProjectList({
             role="dialog"
             aria-modal="true"
             aria-labelledby="create-title"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                closeCreate();
+              }
+              if (event.key !== "Tab") return;
+              const buttons = Array.from(
+                event.currentTarget.querySelectorAll<HTMLElement>(
+                  "button:not(:disabled), input:not(:disabled)",
+                ),
+              );
+              const first = buttons[0];
+              const last = buttons.at(-1);
+              if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last?.focus();
+              } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first?.focus();
+              }
+            }}
           >
             <button
               className="close-button"
-              onClick={() => setOpen(false)}
+              onClick={closeCreate}
               aria-label="Close"
             >
               ×
@@ -145,7 +175,7 @@ export function ProjectList({
                 <button
                   type="button"
                   className="button button-secondary"
-                  onClick={() => setOpen(false)}
+                  onClick={closeCreate}
                 >
                   Cancel
                 </button>

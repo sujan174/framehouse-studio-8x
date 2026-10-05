@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { FolderKanban, Settings2 } from "lucide-react";
+import { StudioNavigation } from "@/components/studio-navigation";
 export default async function StudioLayout({
   children,
 }: {
@@ -25,14 +25,7 @@ export default async function StudioLayout({
             afterSelectOrganizationUrl="/studio"
           />
         </div>
-        <nav className="studio-nav" aria-label="Studio navigation">
-          <Link href="/studio">
-            <FolderKanban size={19} /> Projects
-          </Link>
-          <Link href="/studio/settings">
-            <Settings2 size={19} /> Settings
-          </Link>
-        </nav>
+        <StudioNavigation />
         <div className="sidebar-bottom">
           <span className="sidebar-label">ACCOUNT</span>
           <UserButton showName />
@@ -50,10 +43,7 @@ export default async function StudioLayout({
           />
           <UserButton />
         </div>
-        <nav className="mobile-studio-nav" aria-label="Studio navigation">
-          <Link href="/studio">Projects</Link>
-          <Link href="/studio/settings">Settings</Link>
-        </nav>
+        <StudioNavigation mobile />
         {children}
       </div>
     </div>
