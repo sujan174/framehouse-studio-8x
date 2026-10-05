@@ -8,7 +8,7 @@ The project page opens on a combined composer and asset feed. A creator enters a
 
 ## Data and authorization
 
-Use an `image_generations` table with explicit organization, project, creator, prompt, steps, seed, status, timestamps, failure category, and client submission ID. Store a successful JPEG in a separate private PostgreSQL image table, bounded in size. This reuses the existing private Railway database for the small assignment workload. List endpoints select metadata only. Every read and mutation joins the active project and organization from Clerk's verified server session; guessed IDs return a generic unavailable result. The preview and download routes return bytes only after the same check, with private, no-store headers. No browser receives the provider token or direct storage location.
+Use an `image_generations` table with explicit organization, project, creator, prompt, steps, status, timestamps, failure category, and client submission ID. Store a successful JPEG in a separate private PostgreSQL image table, bounded in size. This reuses the existing private Railway database for the small assignment workload. List endpoints select metadata only. Every read and mutation joins the active project and organization from Clerk's verified server session; guessed IDs return a generic unavailable result. The preview and download routes return bytes only after the same check, with private, no-store headers. No browser receives the provider token or direct storage location.
 
 ## Execution and limits
 

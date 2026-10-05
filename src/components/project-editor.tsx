@@ -63,16 +63,6 @@ export function ProjectEditor({
     );
   return (
     <article className="project-editor">
-      <div className="editor-top">
-        <div>
-          <p className="eyebrow">PROJECT / WORKSPACE</p>
-          <h1>{initialProject.title}</h1>
-          <p>
-            Created {new Date(initialProject.createdAt).toLocaleDateString()}
-          </p>
-        </div>
-        <span className="project-state">ACTIVE PROJECT</span>
-      </div>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -80,7 +70,7 @@ export function ProjectEditor({
         }}
       >
         <div className="editor-section">
-          <p className="section-index">01 / OVERVIEW</p>
+          <p className="section-index">03 / PROJECT DETAILS</p>
           <h2>Shape the brief</h2>
           <p>
             Give this project a clear direction. You can refine it as your work

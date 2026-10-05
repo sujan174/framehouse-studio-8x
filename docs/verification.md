@@ -22,3 +22,10 @@ The UI and persistence checks above were made against deployed commit `a60e16f00
 - Clerk is using its dedicated development instance on the Railway URL. A production Clerk instance needs a domain we control and production domain setup. The development-mode badge is visible.
 - Railway reports `NO_INSTALLATION` for its GitHub App. Native autodeploy and Wait for CI cannot be enabled until the app is connected to this repository. The current deployment was manually triggered only after the matching GitHub Actions run passed. A project-token alternative was rejected by Railway as unauthorized.
 - The selected creative workflow, generation provider, full catalogue, rich canvas, and assignment walkthrough are separate later milestones.
+
+## Image workflow: local and provider checks (2026-10-06)
+
+- A real FLUX.1 schnell REST request using the production Railway service variables returned a valid 365,729-byte JPEG. The initial request exposed a documentation mismatch: Cloudflare rejected `seed` as an additional property (HTTP 400, code 5006). The final request used only `prompt` and `steps`; the unsupported field was removed from the integration. The test script printed no credentials or image bytes.
+- The `0002` and `0003` migrations applied locally. PostgreSQL integration tests covered cross-workspace generation and image access, forged ownership fields, archived projects, idempotency, outstanding-job and daily limits, stale running job recovery, terminal provider failures, and single global worker execution. The full suite passed: 22 tests in four files.
+- Local lint, typecheck, and production build passed. A local page reload showed a saved failed generation with its prompt available for reuse. The worker moved a queued job to a terminal configuration failure after a process restart. Desktop and 390-pixel phone layouts were inspected; the phone view had no horizontal overflow.
+- Live application verification, CI evidence, and the deployed commit are recorded below after deployment.

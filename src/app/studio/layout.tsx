@@ -34,7 +34,7 @@ export default async function StudioLayout({
       <div className="studio-content" key={session.orgId}>
         <div className="mobile-studio-head">
           <Link href="/studio" className="wordmark">
-            <span className="mark">F.</span> FRAMEHOUSE
+            <span className="mark">F.</span> <span className="mobile-brand-text">FRAMEHOUSE</span>
           </Link>
           <OrganizationSwitcher
             hidePersonal
