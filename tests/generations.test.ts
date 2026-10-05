@@ -91,6 +91,20 @@ describe("image generation ownership", () => {
     expect(await getGenerationImage(db, alice, project.id, generation!.id)).toBeNull();
   });
 
+  it("denies details and private bytes of an archived successful generation", async () => {
+    const project = await createProject(db, alice, { title: "Private archive" });
+    const generation = await createGeneration(db, alice, project.id, {
+      prompt: "An amber room", steps: 4, clientRequestId: crypto.randomUUID(),
+    });
+    await claimNextGeneration(db);
+    await finishGeneration(db, generation!.id, Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+    await archiveProject(db, alice, project.id);
+    expect(await listGenerations(db, alice, project.id)).toBeNull();
+    expect(await getGeneration(db, alice, project.id, generation!.id)).toBeNull();
+    expect(await getGenerationImage(db, alice, project.id, generation!.id)).toBeNull();
+    expect(await getGenerationImage(db, bob, project.id, generation!.id)).toBeNull();
+  });
+
   it("does not complete an unclaimed queued generation", async () => {
     const project = await createProject(db, alice, { title: "Queue" });
     const generation = await createGeneration(db, alice, project.id, {

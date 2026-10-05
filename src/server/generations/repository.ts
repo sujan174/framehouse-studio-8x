@@ -36,24 +36,32 @@ export async function countDailyGenerationUsage(db: Database, tenant: TenantCont
 
 export async function listGenerations(db: Database, tenant: TenantContext, projectId: string) {
   if (!(await getProject(db, tenant, projectId))) return null;
-  return db.select().from(imageGenerations)
-    .where(and(eq(imageGenerations.clerkOrgId, tenant.orgId), eq(imageGenerations.projectId, projectId)))
+  const rows = await db.select({ generation: imageGenerations }).from(imageGenerations)
+    .innerJoin(projects, and(eq(projects.id, imageGenerations.projectId), eq(projects.clerkOrgId, imageGenerations.clerkOrgId)))
+    .where(and(eq(projects.id, projectId), eq(projects.clerkOrgId, tenant.orgId), isNull(projects.archivedAt),
+      eq(imageGenerations.clerkOrgId, tenant.orgId)))
     .orderBy(desc(imageGenerations.createdAt)).limit(100);
+  return rows.map((row) => row.generation);
 }
 
 export async function getGeneration(db: Database, tenant: TenantContext, projectId: string, id: string) {
-  if (!(await getProject(db, tenant, projectId))) return null;
-  const rows = await db.select().from(imageGenerations).where(and(
-    eq(imageGenerations.clerkOrgId, tenant.orgId), eq(imageGenerations.projectId, projectId), eq(imageGenerations.id, id),
+  const rows = await db.select({ generation: imageGenerations }).from(imageGenerations)
+    .innerJoin(projects, and(eq(projects.id, imageGenerations.projectId), eq(projects.clerkOrgId, imageGenerations.clerkOrgId)))
+    .where(and(
+    eq(projects.id, projectId), eq(projects.clerkOrgId, tenant.orgId), isNull(projects.archivedAt),
+    eq(imageGenerations.clerkOrgId, tenant.orgId), eq(imageGenerations.id, id),
   )).limit(1);
-  return rows[0] ?? null;
+  return rows[0]?.generation ?? null;
 }
 
 export async function getGenerationImage(db: Database, tenant: TenantContext, projectId: string, id: string) {
-  const generation = await getGeneration(db, tenant, projectId, id);
-  if (!generation || generation.status !== "succeeded") return null;
   const rows = await db.select({ imageBase64: generationImages.imageBase64 })
-    .from(generationImages).where(and(eq(generationImages.generationId, id), eq(generationImages.clerkOrgId, tenant.orgId))).limit(1);
+    .from(generationImages)
+    .innerJoin(imageGenerations, and(eq(imageGenerations.id, generationImages.generationId), eq(imageGenerations.clerkOrgId, generationImages.clerkOrgId)))
+    .innerJoin(projects, and(eq(projects.id, imageGenerations.projectId), eq(projects.clerkOrgId, imageGenerations.clerkOrgId)))
+    .where(and(eq(projects.id, projectId), eq(projects.clerkOrgId, tenant.orgId), isNull(projects.archivedAt),
+      eq(imageGenerations.id, id), eq(imageGenerations.status, "succeeded"),
+      eq(generationImages.clerkOrgId, tenant.orgId))).limit(1);
   return rows[0] ? Buffer.from(rows[0].imageBase64, "base64") : null;
 }
 
