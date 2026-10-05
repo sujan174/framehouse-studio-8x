@@ -6,6 +6,7 @@ import {
   RateLimitError,
   WorkspaceError,
 } from "./tenant";
+export { verifyMutationRequest } from "./request-policy";
 export function errorResponse(error: unknown) {
   if (error instanceof AuthenticationError)
     return Response.json({ error: "Sign in required" }, { status: 401 });
@@ -27,19 +28,6 @@ export function errorResponse(error: unknown) {
     { error: "The request could not be completed" },
     { status: 500 },
   );
-}
-export function verifyMutationRequest(request: Request, activeOrgId: string) {
-  const origin = request.headers.get("origin");
-  let originHost: string;
-  try {
-    originHost = new URL(origin ?? "").host;
-  } catch {
-    throw new AuthorizationError();
-  }
-  if (!origin || originHost !== new URL(request.url).host)
-    throw new AuthorizationError();
-  if (request.headers.get("x-workspace-id") !== activeOrgId)
-    throw new AuthorizationError();
 }
 export async function readSmallJson(request: Request) {
   if (!request.headers.get("content-type")?.startsWith("application/json"))

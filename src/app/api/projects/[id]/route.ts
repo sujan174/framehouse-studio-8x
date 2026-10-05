@@ -14,12 +14,15 @@ import {
 export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ id: string }> };
 async function projectId(context: Context) {
-  return z.uuid().parse((await context.params).id);
+  return z.uuid().safeParse((await context.params).id);
 }
 export async function GET(_request: Request, context: Context) {
   try {
     const tenant = await currentTenant();
-    const project = await getProject(db, tenant, await projectId(context));
+    const id = await projectId(context);
+    if (!id.success)
+      return Response.json({ error: "Project not found" }, { status: 404 });
+    const project = await getProject(db, tenant, id.data);
     return project
       ? Response.json(
           { project },
@@ -34,10 +37,13 @@ export async function PATCH(request: Request, context: Context) {
   try {
     const tenant = await currentTenant();
     verifyMutationRequest(request, tenant.orgId);
+    const id = await projectId(context);
+    if (!id.success)
+      return Response.json({ error: "Project not found" }, { status: 404 });
     const project = await updateProject(
       db,
       tenant,
-      await projectId(context),
+      id.data,
       await readSmallJson(request),
     );
     return project
@@ -51,7 +57,10 @@ export async function DELETE(request: Request, context: Context) {
   try {
     const tenant = await currentTenant();
     verifyMutationRequest(request, tenant.orgId);
-    const project = await archiveProject(db, tenant, await projectId(context));
+    const id = await projectId(context);
+    if (!id.success)
+      return Response.json({ error: "Project not found" }, { status: 404 });
+    const project = await archiveProject(db, tenant, id.data);
     return project
       ? Response.json({ project })
       : Response.json({ error: "Project not found" }, { status: 404 });
