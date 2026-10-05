@@ -7,7 +7,7 @@ import {
   WorkspaceError,
 } from "./tenant";
 import { GenerationBusyError, GenerationLimitError, SubmissionConflictError } from "./generations/repository";
-export { verifyMutationRequest } from "./request-policy";
+export { readSmallJson, verifyMutationRequest } from "./request-policy";
 export function errorResponse(error: unknown) {
   const headers = { "Cache-Control": "private, no-store" };
   if (error instanceof AuthenticationError)
@@ -36,11 +36,4 @@ export function errorResponse(error: unknown) {
     { error: "The request could not be completed" },
     { status: 500, headers },
   );
-}
-export async function readSmallJson(request: Request) {
-  if (!request.headers.get("content-type")?.startsWith("application/json"))
-    throw new SyntaxError();
-  const body = await request.text();
-  if (body.length > 4096) throw new SyntaxError();
-  return JSON.parse(body) as unknown;
 }

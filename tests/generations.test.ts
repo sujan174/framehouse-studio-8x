@@ -46,6 +46,7 @@ describe("image generation ownership", () => {
     expect(await listGenerations(db, bob, a.id)).toBeNull();
     expect(await getGeneration(db, bob, b.id, generation!.id)).toBeNull();
     expect(await getGenerationImage(db, bob, b.id, generation!.id)).toBeNull();
+    await claimNextGeneration(db);
     await finishGeneration(db, generation!.id, Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
     expect((await getGenerationImage(db, alice, a.id, generation!.id))?.length).toBe(4);
     expect(await getGenerationImage(db, bob, a.id, generation!.id)).toBeNull();
@@ -73,6 +74,30 @@ describe("image generation ownership", () => {
     expect(await createGeneration(db, alice, project.id, {
       prompt: "A private skyline", steps: 4, clientRequestId: crypto.randomUUID(),
     })).toBeNull();
+  });
+
+  it("does not persist a running image after its project is archived", async () => {
+    const project = await createProject(db, alice, { title: "Archived during provider call" });
+    const generation = await createGeneration(db, alice, project.id, {
+      prompt: "A private skyline", steps: 4, clientRequestId: crypto.randomUUID(),
+    });
+    expect((await claimNextGeneration(db))?.id).toBe(generation!.id);
+    await archiveProject(db, alice, project.id);
+    expect(await finishGeneration(db, generation!.id, Buffer.from([0xff, 0xd8, 0xff, 0xd9]))).toBeNull();
+    const row = await db.execute(sql`select status, failure_code from image_generations where id = ${generation!.id}`);
+    expect(row.rows[0]).toMatchObject({ status: "failed", failure_code: "project_archived" });
+    const stored = await db.execute(sql`select count(*)::int as total from generation_images where generation_id = ${generation!.id}`);
+    expect(stored.rows[0].total).toBe(0);
+    expect(await getGenerationImage(db, alice, project.id, generation!.id)).toBeNull();
+  });
+
+  it("does not complete an unclaimed queued generation", async () => {
+    const project = await createProject(db, alice, { title: "Queue" });
+    const generation = await createGeneration(db, alice, project.id, {
+      prompt: "A folded paper star", steps: 4, clientRequestId: crypto.randomUUID(),
+    });
+    expect(await finishGeneration(db, generation!.id, Buffer.from([0xff, 0xd8, 0xff, 0xd9]))).toBeNull();
+    expect((await getGeneration(db, alice, project.id, generation!.id))?.status).toBe("queued");
   });
 
   it("deduplicates a repeated submission key and bounds outstanding work", async () => {

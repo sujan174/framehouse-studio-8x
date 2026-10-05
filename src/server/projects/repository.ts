@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gt, isNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { z } from "zod";
 import { imageGenerations, projects } from "../db/schema";
@@ -111,7 +111,7 @@ export async function archiveProject(
     if (!rows[0]) return null;
     await tx.update(imageGenerations)
       .set({ status: "failed", failureCode: "project_archived", updatedAt: now, completedAt: now })
-      .where(and(eq(imageGenerations.clerkOrgId, tenant.orgId), eq(imageGenerations.projectId, id), eq(imageGenerations.status, "queued")));
+      .where(and(eq(imageGenerations.clerkOrgId, tenant.orgId), eq(imageGenerations.projectId, id), inArray(imageGenerations.status, ["queued", "running"])));
     return rows[0];
   });
 }

@@ -8,6 +8,7 @@ The regular repo hooks remain the capture path for newly started sessions.
 import argparse
 import json
 from pathlib import Path
+import sys
 import time
 
 from capture import capture
@@ -48,7 +49,12 @@ def main():
     parser.add_argument("session_id")
     parser.add_argument("since")
     parser.add_argument("--model", default="gpt-6-sol")
+    parser.add_argument("--allow-with-hooks", action="store_true", help="Only for sessions where repository hooks are known to be inactive")
     args = parser.parse_args()
+    hooks = Path(__file__).resolve().parents[1] / "hooks.json"
+    if hooks.exists() and not args.allow_with_hooks:
+        print("Capture bridge stopped: repository hooks are configured. Use --allow-with-hooks only if this session predates active hooks.", file=sys.stderr)
+        return
     seen = 0
     while True:
         items = list(messages(args.transcript, args.since))

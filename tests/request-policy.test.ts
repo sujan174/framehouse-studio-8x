@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { verifyMutationRequest } from "../src/server/request-policy";
+import { readSmallJson, verifyMutationRequest } from "../src/server/request-policy";
 
 const endpoint = "https://studio.example.test/api/projects";
 function request(origin?: string, workspace?: string) {
@@ -53,5 +53,28 @@ describe("mutation request boundary", () => {
         "org_active",
       ),
     ).not.toThrow();
+  });
+});
+
+describe("JSON request size", () => {
+  it("stops reading after the byte limit even without Content-Length", async () => {
+    let canceled = false;
+    let reads = 0;
+    const request = new Request(endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      duplex: "half",
+      body: new ReadableStream({
+        pull(controller) { reads++; controller.enqueue(new Uint8Array(1024)); },
+        cancel() { canceled = true; },
+      }),
+    } as RequestInit);
+    await expect(readSmallJson(request)).rejects.toThrow(SyntaxError);
+    expect(reads).toBeLessThanOrEqual(6);
+    expect(canceled).toBe(true);
+  });
+  it("parses a valid small JSON body", async () => {
+    const request = new Request(endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "Safe" }) });
+    await expect(readSmallJson(request)).resolves.toEqual({ title: "Safe" });
   });
 });

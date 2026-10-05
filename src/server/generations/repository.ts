@@ -107,7 +107,7 @@ export async function finishGeneration(db: Database, id: string, image: Buffer) 
   if (image.length < 4 || image.length > 6_000_000) throw new Error("Invalid image size");
   return db.transaction(async (tx) => {
     const rows = await tx.update(imageGenerations).set({ status: "succeeded", updatedAt: new Date(), completedAt: new Date() })
-      .where(and(eq(imageGenerations.id, id), inArray(imageGenerations.status, ["queued", "running"]))).returning();
+      .where(and(eq(imageGenerations.id, id), eq(imageGenerations.status, "running"))).returning();
     if (!rows[0]) return null;
     await tx.insert(generationImages).values({ generationId: id, clerkOrgId: rows[0].clerkOrgId, imageBase64: image.toString("base64") });
     return rows[0];
