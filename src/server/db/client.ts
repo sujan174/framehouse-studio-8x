@@ -8,12 +8,13 @@ const pool = new Pool({
   max: 10,
   connectionTimeoutMillis: 5000,
   idleTimeoutMillis: 30000,
+  statement_timeout: 5000,
 });
 export const db = drizzle(pool);
 export async function checkDatabase() {
   const client = await pool.connect();
   try {
-    await client.query("select 1");
+    await client.query("select 1 from projects limit 1");
   } finally {
     client.release();
   }
