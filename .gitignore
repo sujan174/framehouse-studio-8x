@@ -1,2 +1,12 @@
 __pycache__/
 *.pyc
+.DS_Store
+.env
+.env.*
+!.env.example
+node_modules/
+.next/
+coverage/
+
+# Local prompt drafts; keep these out of the public repository.
+/docs/prompts/
