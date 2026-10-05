@@ -1,0 +1,1 @@
+ALTER TABLE "image_generations" DROP COLUMN "seed";

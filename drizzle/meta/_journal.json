@@ -15,6 +15,20 @@
       "when": 1791225520966,
       "tag": "0001_funny_retro_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791226666490,
+      "tag": "0002_neat_wallop",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791228813230,
+      "tag": "0003_good_revanche",
+      "breakpoints": true
     }
   ]
 }

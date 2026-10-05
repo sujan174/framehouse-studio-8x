@@ -13,7 +13,11 @@ import {
   finishGeneration,
   failGeneration,
   recoverStaleGenerations,
+  claimNextGeneration,
+  countDailyGenerationUsage,
 } from "../src/server/generations/repository";
+import { runOneGeneration } from "../src/server/generations/worker";
+import { ProviderError } from "../src/server/generations/flux-provider";
 
 const url = process.env.TEST_DATABASE_URL;
 if (!url) throw new Error("TEST_DATABASE_URL is required");
@@ -38,6 +42,7 @@ describe("image generation ownership", () => {
     expect(await createGeneration(db, bob, a.id, request)).toBeNull();
     const generation = await createGeneration(db, alice, a.id, request);
     expect(generation).not.toBeNull();
+    expect(await getGenerationImage(db, alice, a.id, generation!.id)).toBeNull();
     expect(await listGenerations(db, bob, a.id)).toBeNull();
     expect(await getGeneration(db, bob, b.id, generation!.id)).toBeNull();
     expect(await getGenerationImage(db, bob, b.id, generation!.id)).toBeNull();
@@ -52,12 +57,19 @@ describe("image generation ownership", () => {
     const base = { prompt: "A glass sculpture", steps: 4, clientRequestId: crypto.randomUUID() };
     await expect(createGeneration(db, alice, project.id, { ...base, orgId: bob.orgId })).rejects.toThrow();
     await expect(createGeneration(db, alice, project.id, { ...base, steps: 9 })).rejects.toThrow();
+    await expect(createGeneration(db, alice, project.id, { ...base, steps: 5 })).rejects.toThrow();
     await expect(createGeneration(db, alice, project.id, { ...base, prompt: " " })).rejects.toThrow();
   });
 
   it("does not enqueue work for an archived project", async () => {
     const project = await createProject(db, alice, { title: "Archived" });
+    const queued = await createGeneration(db, alice, project.id, {
+      prompt: "A private skyline", steps: 4, clientRequestId: crypto.randomUUID(),
+    });
     await archiveProject(db, alice, project.id);
+    expect(await claimNextGeneration(db)).toBeNull();
+    const canceled = await db.execute(sql`select status, failure_code from image_generations where id = ${queued!.id}`);
+    expect(canceled.rows[0]).toMatchObject({ status: "failed", failure_code: "project_archived" });
     expect(await createGeneration(db, alice, project.id, {
       prompt: "A private skyline", steps: 4, clientRequestId: crypto.randomUUID(),
     })).toBeNull();
@@ -69,6 +81,7 @@ describe("image generation ownership", () => {
     const first = await createGeneration(db, alice, project.id, input);
     const again = await createGeneration(db, alice, project.id, input);
     expect(again?.id).toBe(first?.id);
+    await expect(createGeneration(db, alice, project.id, { ...input, prompt: "Changed prompt" })).rejects.toThrow("different input");
     await expect(createGeneration(db, alice, project.id, { ...input, clientRequestId: crypto.randomUUID() })).rejects.toThrow("already in progress");
   });
 
@@ -83,5 +96,62 @@ describe("image generation ownership", () => {
     expect(second?.id).not.toBe(first?.id);
     await failGeneration(db, second!.id, "provider_timeout");
     expect((await getGeneration(db, alice, project.id, second!.id))?.status).toBe("failed");
+  });
+
+  it("claims queued work once across concurrent workers", async () => {
+    const project = await createProject(db, alice, { title: "Alpha" });
+    const queued = await createGeneration(db, alice, project.id, {
+      prompt: "A sunlit hillside", steps: 4, clientRequestId: crypto.randomUUID(),
+    });
+    const claims = await Promise.all([claimNextGeneration(db), claimNextGeneration(db)]);
+    expect(claims.filter(Boolean).map((x) => x?.id)).toEqual([queued!.id]);
+    expect((await getGeneration(db, alice, project.id, queued!.id))?.status).toBe("running");
+  });
+
+  it("persists provider success and quota failure as terminal states", async () => {
+    const project = await createProject(db, alice, { title: "Alpha" });
+    const first = await createGeneration(db, alice, project.id, {
+      prompt: "A mossy courtyard", steps: 4, clientRequestId: crypto.randomUUID(),
+    });
+    const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xd9]);
+    await runOneGeneration(db, pool, async () => jpeg);
+    expect((await getGeneration(db, alice, project.id, first!.id))?.status).toBe("succeeded");
+    expect(await getGenerationImage(db, alice, project.id, first!.id)).toEqual(jpeg);
+    const second = await createGeneration(db, alice, project.id, {
+      prompt: "A mossy courtyard", steps: 4, clientRequestId: crypto.randomUUID(),
+    });
+    await runOneGeneration(db, pool, async () => { throw new ProviderError("provider_quota"); });
+    expect((await getGeneration(db, alice, project.id, second!.id))?.failureCode).toBe("provider_quota");
+  });
+
+  it("caps one member to five submissions per UTC day, including failed attempts", async () => {
+    const project = await createProject(db, alice, { title: "Alpha" });
+    for (let index = 0; index < 5; index++) {
+      const generation = await createGeneration(db, alice, project.id, {
+        prompt: `Version ${index}`, steps: 4, clientRequestId: crypto.randomUUID(),
+      });
+      await failGeneration(db, generation!.id, "provider_unavailable");
+    }
+    expect(await countDailyGenerationUsage(db, alice)).toBe(5);
+    expect(await countDailyGenerationUsage(db, bob)).toBe(0);
+    await expect(createGeneration(db, alice, project.id, {
+      prompt: "One too many", steps: 4, clientRequestId: crypto.randomUUID(),
+    })).rejects.toThrow("Daily image limit reached");
+  });
+
+  it("holds one provider call globally while another request waits", async () => {
+    const a = await createProject(db, alice, { title: "Alpha" });
+    const b = await createProject(db, bob, { title: "Beta" });
+    await createGeneration(db, alice, a.id, { prompt: "Alpha image", steps: 4, clientRequestId: crypto.randomUUID() });
+    await createGeneration(db, bob, b.id, { prompt: "Beta image", steps: 4, clientRequestId: crypto.randomUUID() });
+    let release!: () => void;
+    let started!: () => void;
+    const entered = new Promise<void>((resolve) => { started = resolve; });
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    const first = runOneGeneration(db, pool, async () => { started(); await held; return Buffer.from([0xff, 0xd8, 0xff, 0xd9]); });
+    await entered;
+    expect(await runOneGeneration(db, pool, async () => { throw new Error("should not run concurrently"); })).toBeNull();
+    release();
+    await first;
   });
 });

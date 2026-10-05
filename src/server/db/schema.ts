@@ -41,7 +41,6 @@ export const imageGenerations = pgTable(
     clientRequestId: uuid("client_request_id").notNull(),
     prompt: text("prompt").notNull(),
     steps: integer("steps").notNull(),
-    seed: integer("seed").notNull(),
     status: varchar("status", { length: 16 }).notNull().default("queued"),
     failureCode: varchar("failure_code", { length: 32 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -59,5 +58,6 @@ export type ImageGeneration = typeof imageGenerations.$inferSelect;
 
 export const generationImages = pgTable("generation_images", {
   generationId: uuid("generation_id").primaryKey().references(() => imageGenerations.id),
+  clerkOrgId: varchar("clerk_org_id", { length: 128 }).notNull(),
   imageBase64: text("image_base64").notNull(),
 });

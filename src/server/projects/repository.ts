@@ -1,7 +1,7 @@
 import { and, count, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { z } from "zod";
-import { projects } from "../db/schema";
+import { imageGenerations, projects } from "../db/schema";
 import type { TenantContext } from "../tenant";
 import { AuthorizationError, RateLimitError } from "../tenant";
 
@@ -102,10 +102,16 @@ export async function archiveProject(
   if (!project) return null;
   if (project.creatorUserId !== tenant.userId && tenant.role !== "org:admin")
     throw new AuthorizationError();
-  const rows = await db
-    .update(projects)
-    .set({ archivedAt: new Date(), updatedAt: new Date() })
-    .where(and(active(tenant), eq(projects.id, id)))
-    .returning();
-  return rows[0] ?? null;
+  return db.transaction(async (tx) => {
+    const now = new Date();
+    const rows = await tx.update(projects)
+      .set({ archivedAt: now, updatedAt: now })
+      .where(and(active(tenant), eq(projects.id, id)))
+      .returning();
+    if (!rows[0]) return null;
+    await tx.update(imageGenerations)
+      .set({ status: "failed", failureCode: "project_archived", updatedAt: now, completedAt: now })
+      .where(and(eq(imageGenerations.clerkOrgId, tenant.orgId), eq(imageGenerations.projectId, id), eq(imageGenerations.status, "queued")));
+    return rows[0];
+  });
 }

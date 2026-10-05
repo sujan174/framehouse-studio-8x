@@ -9,7 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test:db": "vitest run tests --no-file-parallelism",
-    "db:migrate": "node scripts/migrate.mjs"
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.10",
