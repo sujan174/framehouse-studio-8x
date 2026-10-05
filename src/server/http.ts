@@ -7,6 +7,7 @@ import {
   WorkspaceError,
 } from "./tenant";
 import { GenerationBusyError, GenerationLimitError, SubmissionConflictError } from "./generations/repository";
+import { InvalidCreativeImageError, StaleCreativeStateError } from "./creative/repository";
 export { readSmallJson, verifyMutationRequest } from "./request-policy";
 export function errorResponse(error: unknown) {
   const headers = { "Cache-Control": "private, no-store" };
@@ -20,6 +21,10 @@ export function errorResponse(error: unknown) {
     return Response.json({ error: "Finish the current image before starting another." }, { status: 409, headers });
   if (error instanceof SubmissionConflictError)
     return Response.json({ error: "This submission was already used for different settings." }, { status: 409, headers });
+  if (error instanceof StaleCreativeStateError)
+    return Response.json({ error: "This board changed elsewhere. Reload to see the latest version." }, { status: 409, headers });
+  if (error instanceof InvalidCreativeImageError)
+    return Response.json({ error: "Select successful images from this project." }, { status: 400, headers });
   if (error instanceof GenerationLimitError)
     return Response.json({ error: "Daily image limit reached. Try again after 00:00 UTC." }, { status: 429, headers });
   if (error instanceof RateLimitError)

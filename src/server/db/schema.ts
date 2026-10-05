@@ -7,6 +7,7 @@ import {
   text,
   integer,
   uniqueIndex,
+  jsonb,
 } from "drizzle-orm/pg-core";
 export const projects = pgTable(
   "projects",
@@ -61,3 +62,13 @@ export const generationImages = pgTable("generation_images", {
   clerkOrgId: varchar("clerk_org_id", { length: 128 }).notNull(),
   imageBase64: text("image_base64").notNull(),
 });
+
+export type StoryFrame = { generationId: string; caption: string };
+export const projectCreativeStates = pgTable("project_creative_states", {
+  projectId: uuid("project_id").primaryKey().references(() => projects.id),
+  clerkOrgId: varchar("clerk_org_id", { length: 128 }).notNull(),
+  shortlist: jsonb("shortlist").$type<string[]>().notNull().default([]),
+  frames: jsonb("frames").$type<StoryFrame[]>().notNull().default([]),
+  revision: integer("revision").notNull().default(0),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [index("creative_states_org_project_idx").on(table.clerkOrgId, table.projectId)]);

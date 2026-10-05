@@ -11,6 +11,7 @@ import { ImageWorkspace } from "@/components/image-workspace";
 import { countDailyGenerationUsage, listGenerations } from "@/server/generations/repository";
 import { generationView } from "@/server/generations/view";
 import { WorkspaceBoundary } from "@/components/workspace-boundary";
+import { getCreativeState } from "@/server/creative/repository";
 export const metadata: Metadata = { title: "Project" };
 export const dynamic = "force-dynamic";
 export default async function ProjectPage({
@@ -23,9 +24,10 @@ export default async function ProjectPage({
   if (!parsed.success) notFound();
   const project = await getProject(db, tenant, parsed.data);
   if (!project) notFound();
-  const [generations, dailyUsed] = await Promise.all([
+  const [generations, dailyUsed, creativeState] = await Promise.all([
     listGenerations(db, tenant, project.id),
     countDailyGenerationUsage(db, tenant),
+    getCreativeState(db, tenant, project.id),
   ]);
   return (
     <main className="studio-main">
@@ -36,6 +38,7 @@ export default async function ProjectPage({
         <header className="project-studio-header"><div><p className="eyebrow">PROJECT / WORKSPACE</p><h1>{project.title}</h1><p>{project.description || "A space for ideas worth making."}</p></div><span className="project-state">ACTIVE PROJECT</span></header>
         <ImageWorkspace projectId={project.id} serverOrgId={tenant.orgId}
           initialGenerations={(generations ?? []).map(generationView)}
+          initialCreativeState={creativeState!} projectTitle={project.title}
           initialDailyUsed={dailyUsed}
           available={Boolean(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN)} />
         <details className="project-settings-panel"><summary>Project settings <span>Edit details and archive</span></summary>

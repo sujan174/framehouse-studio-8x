@@ -28,6 +28,16 @@ export async function listProjects(db: Database, tenant: TenantContext) {
     .orderBy(desc(projects.updatedAt))
     .limit(100);
 }
+export async function listProjectCovers(db: Database, tenant: TenantContext) {
+  const rows = await db.selectDistinctOn([imageGenerations.projectId], {
+    projectId: imageGenerations.projectId, generationId: imageGenerations.id,
+  }).from(imageGenerations).innerJoin(projects, and(
+    eq(projects.id, imageGenerations.projectId), eq(projects.clerkOrgId, imageGenerations.clerkOrgId),
+  )).where(and(eq(projects.clerkOrgId, tenant.orgId), isNull(projects.archivedAt),
+    eq(imageGenerations.clerkOrgId, tenant.orgId), eq(imageGenerations.status, "succeeded")))
+    .orderBy(imageGenerations.projectId, desc(imageGenerations.createdAt));
+  return Object.fromEntries(rows.map((row) => [row.projectId, row.generationId]));
+}
 export async function countProjects(db: Database, tenant: TenantContext) {
   const rows = await db
     .select({ total: count() })

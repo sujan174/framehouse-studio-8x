@@ -1,4 +1,6 @@
 "use client";
+/* Private covers use authorized image routes directly. */
+/* eslint-disable @next/next/no-img-element */
 import { useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
@@ -6,9 +8,11 @@ import { ArrowUpRight, Plus, FolderOpen } from "lucide-react";
 import type { Project } from "@/server/db/schema";
 export function ProjectList({
   initialProjects,
+  initialCovers,
   serverOrgId,
 }: {
   initialProjects: Project[];
+  initialCovers: Record<string, string>;
   serverOrgId: string;
 }) {
   const { orgId, isLoaded } = useAuth();
@@ -80,7 +84,7 @@ export function ProjectList({
                   key={p.id}
                 >
                   <div className="project-card-art">
-                    <span>{p.title.slice(0, 1).toUpperCase()}</span>
+                    {initialCovers[p.id] ? <img src={`/api/projects/${p.id}/generations/${initialCovers[p.id]}/image`} alt="" loading="lazy" /> : <span>{p.title.slice(0, 1).toUpperCase()}</span>}
                   </div>
                   <div className="project-card-meta">
                     <span className="project-card-type">PROJECT</span>

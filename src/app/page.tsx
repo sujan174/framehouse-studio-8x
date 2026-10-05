@@ -26,8 +26,8 @@ export default function Home() {
             for <em>what&apos;s next.</em>
           </h1>
           <p className="hero-description">
-            A focused home for creative projects. Gather your ideas, shape a
-            brief, and keep your team&apos;s work in one clear space.
+            Explore a direction, create images, choose your strongest frames,
+            and arrange them into a story worth sharing.
           </p>
           <div className="hero-actions">
             <Link className="button" href="/sign-up">
@@ -68,7 +68,7 @@ export default function Home() {
         <div>
           <Layers3 />
           <h2>Projects with purpose</h2>
-          <p>Create, edit, and archive the work that matters.</p>
+          <p>Keep prompts, generated images, and storyboards together.</p>
         </div>
         <div>
           <ShieldCheck />
@@ -77,8 +77,8 @@ export default function Home() {
         </div>
         <div>
           <Sparkles />
-          <h2>Built to grow</h2>
-          <p>Creative tools are coming next. The foundation is real today.</p>
+          <h2>Create, curate, export</h2>
+          <p>Start from a direction, compare results, and export your visual story.</p>
         </div>
       </section>
       <footer className="landing-footer wrap">
