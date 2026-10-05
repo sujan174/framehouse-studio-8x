@@ -11,3 +11,5 @@ coverage/
 
 # Local prompt drafts; keep these out of the public repository.
 /docs/prompts/
+
+next-env.d.ts
