@@ -32,3 +32,4 @@ The GitHub workflow runs lint, typecheck, Postgres integration tests, and the pr
 Every private route derives the active organization and role from Clerk's verified server session. Project queries include the organization predicate in SQL. Members can create and edit projects; only the creator or an organization admin can archive one. Mutations require the browser origin and active workspace header to agree with the verified session. Twenty project creations per member and workspace are allowed per hour, enforced through a Postgres transaction.
 
 See `docs/foundation-build-brief.md` for the scope, and `CAPTURE-TEST.md` for agent capture setup.
+See `docs/verification.md` for observed local and live checks, screenshots, and deployment limitations.
