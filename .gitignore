@@ -7,6 +7,7 @@ __pycache__/
 node_modules/
 .next/
 coverage/
+*.tsbuildinfo
 
 # Local prompt drafts; keep these out of the public repository.
 /docs/prompts/
