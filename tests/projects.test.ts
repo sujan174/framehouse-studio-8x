@@ -45,7 +45,7 @@ beforeAll(async () => {
   await migrate(db, { migrationsFolder: "./drizzle" });
 });
 beforeEach(async () => {
-  await db.execute(sql`truncate table projects`);
+  await db.execute(sql`truncate table projects cascade`);
 });
 afterAll(async () => {
   await pool.end();

@@ -5,6 +5,8 @@ import {
   uuid,
   varchar,
   text,
+  integer,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 export const projects = pgTable(
   "projects",
@@ -28,3 +30,34 @@ export const projects = pgTable(
   ],
 );
 export type Project = typeof projects.$inferSelect;
+
+export const imageGenerations = pgTable(
+  "image_generations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clerkOrgId: varchar("clerk_org_id", { length: 128 }).notNull(),
+    projectId: uuid("project_id").notNull().references(() => projects.id),
+    creatorUserId: varchar("creator_user_id", { length: 128 }).notNull(),
+    clientRequestId: uuid("client_request_id").notNull(),
+    prompt: text("prompt").notNull(),
+    steps: integer("steps").notNull(),
+    seed: integer("seed").notNull(),
+    status: varchar("status", { length: 16 }).notNull().default("queued"),
+    failureCode: varchar("failure_code", { length: 32 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("generations_org_project_created_idx").on(table.clerkOrgId, table.projectId, table.createdAt),
+    index("generations_status_created_idx").on(table.status, table.createdAt),
+    uniqueIndex("generations_idempotency_idx").on(table.clerkOrgId, table.creatorUserId, table.clientRequestId),
+  ],
+);
+export type ImageGeneration = typeof imageGenerations.$inferSelect;
+
+export const generationImages = pgTable("generation_images", {
+  generationId: uuid("generation_id").primaryKey().references(() => imageGenerations.id),
+  imageBase64: text("image_base64").notNull(),
+});

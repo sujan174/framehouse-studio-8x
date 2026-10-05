@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test:db": "vitest run tests",
+    "test:db": "vitest run tests --no-file-parallelism",
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
