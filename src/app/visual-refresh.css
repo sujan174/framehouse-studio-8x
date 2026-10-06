@@ -67,7 +67,7 @@ body { background: var(--background); }
 .creative-layout .composer-heading p:last-child { margin-bottom: 10px; }
 .creative-layout .model-label { margin-bottom: 14px; font-size: 11px; padding: 4px 8px; }
 .creative-layout .image-composer textarea { min-height: 116px; max-height: 300px; font-size: 16px; line-height: 1.45; padding: 12px; }
-.creative-layout .composer-footer { gap: 12px; margin-top: 12px; }
+.creative-layout .composer-footer { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 12px; }
 .creative-layout .generate-button { min-height: 46px; }
 .composer-allowance { margin: 9px 0 0; line-height: 1.4; }
 .composer-options { margin-top: 15px; border-top: 1px solid var(--border); }
