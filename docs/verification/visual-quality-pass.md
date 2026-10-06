@@ -24,3 +24,17 @@ No generation provider, storage, auth, schema or quota behavior changes are plan
 The first deployed pass improved the opening Create composition, full prompt readability, gallery emphasis, intentional empty cover, and private storyboard hierarchy. At 1280 × 720, three remaining defects were visible: the account name escaped the narrower sidebar; square results pushed their curation buttons below the viewport; and the public story's second square image had a dark letterbox band. The second pass hides the redundant account name, uses a 4:3 gallery crop with full image preview retained, and lets public frames size to their square aspect ratio. At phone width, the gallery keeps square previews and the full prompt and Generate action remain visible before scrolling.
 
 The 390 × 844 check then showed no creative image until scrolling past the mobile composer. A small, authorized thumbnail of the latest successful project image now sits above the composer on phones. It does not appear for an empty project and does not replace the full gallery or preview.
+
+## Final live review
+
+The two user-provided prior-state captures are saved as `visual-quality/before-storyboard-user-supplied.png` and `visual-quality/before-shared-story-user-supplied.png`. They document the earlier list-like presentation. The other pre-edit views were inspected live but not saved to files, so there is no exact before/after file pair for every route.
+
+The final deployed pass was reviewed at 1522 × 758 (Create and storyboard), 1280 × 720 (signed-out landing and shared story), and 390 × 844 (Create, empty project, project list, and shared story). The browser's captured JPEG area is slightly smaller than the nominal viewport due to browser chrome and scrollbars. Final captures are in `visual-quality/after-*.jpg`.
+
+On desktop, Generate and two large results appear in the first viewport. The 390 px Create view shows the latest project image and Generate before scrolling; the empty project has no misleading image strip. The gallery still has full-image preview, and Compare and Shortlist remain keyboard-accessible. The published story is a read-only two-frame presentation on desktop and a single-column sequence on mobile. A signed-out browser session received HTML for the landing and public story and a JPEG for a public frame. Existing private asset access and generation behavior were not changed in this pass.
+
+The live export button was exercised, but this browser session did not expose a completed download event, so this review cannot verify that a new export file opens. A previously downloaded 1600 × 1140 PNG was inspected locally, but it predates this pass. No new image generation was requested; this visual pass used the project's persisted results. The local development server could not complete Clerk proxy requests, so rendered review used the live Railway app.
+
+## Delivery evidence
+
+Visual changes landed in `13c55cc`, `03591f5`, and `8901670`. CI run `37480809790` passed lint, typecheck, 40 real-Postgres tests, and the production build on the Namespace runner for `8901670`. Railway deployment `5edf7865-b509-4a82-8b59-5ed2d69cf633` reported SUCCESS for that commit. A later evidence-only commit may contain these screenshots and capture log; no application code changes follow `8901670`.
