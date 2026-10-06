@@ -299,17 +299,10 @@ export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGe
     {view === "create" ? <div className="creative-layout">
     <section className="image-composer" ref={composerRef} aria-labelledby="composer-title">
       <div className="composer-heading">
-        <div><p className="section-index">01 / CREATE</p><h2 id="composer-title">Create an image</h2><p>Choose a direction or write your own scene.</p></div>
+        <div><p className="section-index">01 / CREATE</p><h2 id="composer-title">Make an image</h2><p>Describe the image you want to see.</p></div>
         <span className="model-label">{reference ? "FLUX.2 klein 4B · Remix" : "FLUX.1 schnell"}</span>
       </div>
-      <div className="reference-panel"><div className="reference-panel-heading"><strong>Visual reference</strong><span>{reference ? "Guides this new image" : "Optional · remix a result or upload your own"}</span></div>
-        {reference ? <div className="selected-reference"><img src={reference.kind === "generation" ? imageUrl(reference.id) : referenceUrl(reference.id)} alt="Selected visual reference" /><div><strong>{reference.kind === "generation" ? "Project image" : "Private upload"}</strong><small>FLUX.2 klein 4B will use this image with your prompt.</small><button type="button" onClick={() => { setReference(null); requestId.current = null; }}>Remove reference · use FLUX.1</button></div></div> : null}
-        <label className="reference-upload">{uploading ? "Uploading reference…" : references.length >= 12 ? "12 uploads reached" : "Upload a reference"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading || references.length >= 12} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadReference(file); event.target.value = ""; }}/></label>
-        <p>JPEG, PNG or WebP · 5 MB maximum · kept private in this project. Uploaded images are resized for the model.</p>
-        {references.length > 0 && <div className="reference-strip" aria-label="Uploaded project references">{references.map((item) => <button type="button" key={item.id} onClick={() => selectReference({ kind: "upload", id: item.id })} aria-label="Use uploaded reference"><img src={referenceUrl(item.id)} alt="Uploaded reference" /></button>)}</div>}
-      </div>
-      <div className="preset-list" aria-label="Prompt directions">{presets.map((preset) => <button type="button" key={preset.id} className={`preset-card ${activePreset === preset.id ? "selected" : ""}`} onClick={() => applyPreset(preset)} aria-label={`Use ${preset.title} prompt starter: ${preset.effect}`}><span className={`preset-art preset-${preset.id}`} aria-hidden="true"/><span><strong>{preset.title}</strong><small>{preset.effect}</small></span></button>)}</div>
-      <p className="preset-note">Original graphic guides · Prompt templates, not model examples</p>
+      {reference && <div className="selected-reference composer-reference-active"><img src={reference.kind === "generation" ? imageUrl(reference.id) : referenceUrl(reference.id)} alt="Selected visual reference" /><div><strong>{reference.kind === "generation" ? "Project image selected" : "Private upload selected"}</strong><small>FLUX.2 klein 4B will use this image with your prompt.</small><button type="button" onClick={() => { setReference(null); requestId.current = null; }}>Remove reference · use FLUX.1</button></div></div>}
       {savedPrompt && <button type="button" className="restore-draft" onClick={() => { updatePrompt(savedPrompt); setSavedPrompt(null); setActivePreset(null); promptRef.current?.focus(); }}>Restore previous draft</button>}
       <label htmlFor="image-prompt">Your prompt</label>
       <textarea ref={promptRef} id="image-prompt" rows={5} maxLength={2048} value={prompt}
@@ -327,6 +320,19 @@ export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGe
       </div>
       <p className="composer-allowance">{dailyUsed}/5 image attempts used today · resets 00:00 UTC. Shared free capacity may end sooner.</p>
       {!available && <p role="status" className="availability-note">Image generation is being configured. Your projects remain available.</p>}
+      <div className="composer-options">
+        <details className="composer-option"><summary>Explore prompt directions <span>3 starting points</span></summary>
+          <div className="preset-list" aria-label="Prompt directions">{presets.map((preset) => <button type="button" key={preset.id} className={`preset-card ${activePreset === preset.id ? "selected" : ""}`} onClick={() => applyPreset(preset)} aria-label={`Use ${preset.title} prompt starter: ${preset.effect}`}><span className={`preset-art preset-${preset.id}`} aria-hidden="true"/><span><strong>{preset.title}</strong><small>{preset.effect}</small></span></button>)}</div>
+          <p className="preset-note">Original graphic guides · Prompt templates, not model examples</p>
+        </details>
+        <details className="composer-option"><summary>Remix with a reference <span>{reference ? "Selected" : "Optional"}</span></summary>
+          <div className="reference-panel"><div className="reference-panel-heading"><strong>Visual reference</strong><span>Use a project image or upload your own</span></div>
+            <label className="reference-upload">{uploading ? "Uploading reference…" : references.length >= 12 ? "12 uploads reached" : "Upload a reference"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading || references.length >= 12} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadReference(file); event.target.value = ""; }}/></label>
+            <p>JPEG, PNG or WebP · 5 MB maximum · kept private in this project. Uploaded images are resized for the model.</p>
+            {references.length > 0 && <div className="reference-strip" aria-label="Uploaded project references">{references.map((item) => <button type="button" key={item.id} onClick={() => selectReference({ kind: "upload", id: item.id })} aria-label="Use uploaded reference"><img src={referenceUrl(item.id)} alt="Uploaded reference" /></button>)}</div>}
+          </div>
+        </details>
+      </div>
     </section>
 
     <section className="image-feed" aria-labelledby="feed-title">

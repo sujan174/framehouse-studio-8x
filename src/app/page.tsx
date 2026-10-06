@@ -19,15 +19,15 @@ export default function Home() {
       </header>
       <section className="hero wrap">
         <div className="hero-copy">
-          <p className="eyebrow">● &nbsp; THE SPACE BEFORE THE SPARK</p>
+          <p className="eyebrow">AN INDEPENDENT CREATIVE STUDIO</p>
           <h1>
-            Make room
+            Make the image.
             <br />
-            for <em>what&apos;s next.</em>
+            <em>Find the story.</em>
           </h1>
           <p className="hero-description">
-            Explore a direction, create images, choose your strongest frames,
-            and arrange them into a story worth sharing.
+            Start with a prompt or a visual reference. Make an image, keep the
+            strongest versions, and shape them into a story you can share.
           </p>
           <div className="hero-actions">
             <Link className="button" href="/sign-up">
@@ -41,24 +41,12 @@ export default function Home() {
             Independent creative studio · Built for the 8x assignment
           </p>
         </div>
-        <div
-          className="hero-art"
-          role="img"
-          aria-label="Abstract composition representing organized creative work"
-        >
-          <div className="art-grid" />
-          <div className="art-orbit orbit-one" />
-          <div className="art-orbit orbit-two" />
-          <div className="art-core">F</div>
-          <div className="art-label">
-            A SPACE TO CREATE
-            <br />
-            TOGETHER.
-          </div>
-          <div className="art-caption">
-            <span>01 / A CLEARER STARTING POINT</span>
-            <span>IDEAS INTO MOTION</span>
-          </div>
+        <div className="hero-editorial" aria-label="Editorial photography illustrating visual direction">
+          {/* These CC0 editorial photographs illustrate the creative process, not AI outputs. */}
+          {/* eslint-disable @next/next/no-img-element */}
+          <img className="hero-editorial-main" src="/editorial/frontenac-dusk.jpg" alt="Chateau Frontenac illuminated at dusk" />
+          <img className="hero-editorial-detail" src="/editorial/petit-champlain-night.jpg" alt="A warmly lit stone street at night" />
+          <div className="hero-editorial-caption"><span>FRAMEHOUSE / VISUAL DIRECTION</span><span>Editorial photography · CC0</span></div>
         </div>
       </section>
       <section
