@@ -28,8 +28,8 @@ export async function renderContactSheet(db: Database, tenant: TenantContext, pr
   const parts = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
     `<rect width="100%" height="100%" fill="#141a18"/>`,
-    `<text x="70" y="64" fill="#d0f95d" font-family="Arial,sans-serif" font-size="20" letter-spacing="5">FRAMEHOUSE / VISUAL STORY</text>`,
-    `<text x="70" y="135" fill="#f5f4ec" font-family="Arial,sans-serif" font-size="50" font-weight="700">${escapeXml(project.title)}</text>`,
+    `<text x="70" y="64" fill="#d0f95d" font-family="DejaVu Sans" font-size="20" letter-spacing="5">FRAMEHOUSE / VISUAL STORY</text>`,
+    `<text x="70" y="135" fill="#f5f4ec" font-family="DejaVu Sans" font-size="50" font-weight="700">${escapeXml(project.title)}</text>`,
     `<line x1="70" x2="1530" y1="170" y2="170" stroke="#566157"/>`,
   ];
   const composites: { input: Buffer; left: number; top: number }[] = [];
@@ -41,8 +41,8 @@ export async function renderContactSheet(db: Database, tenant: TenantContext, pr
     const y = 210 + Math.floor(index / 2) * 830;
     const square = await sharp(image).rotate().resize(700, 700, { fit: "cover" }).png().toBuffer();
     composites.push({ input: square, left: x, top: y });
-    parts.push(`<text x="${x}" y="${y + 737}" fill="#d0f95d" font-family="Arial,sans-serif" font-size="23" font-weight="700">${String(index + 1).padStart(2, "0")}</text>`);
-    lines(frame.caption, 48).forEach((line, row) => parts.push(`<text x="${x + 52}" y="${y + 737 + row * 28}" fill="#f5f4ec" font-family="Arial,sans-serif" font-size="23">${escapeXml(line)}</text>`));
+    parts.push(`<text x="${x}" y="${y + 737}" fill="#d0f95d" font-family="DejaVu Sans" font-size="23" font-weight="700">${String(index + 1).padStart(2, "0")}</text>`);
+    lines(frame.caption, 48).forEach((line, row) => parts.push(`<text x="${x + 52}" y="${y + 737 + row * 28}" fill="#f5f4ec" font-family="DejaVu Sans" font-size="23">${escapeXml(line)}</text>`));
   }
   parts.push(`</svg>`);
   const base = Buffer.from(parts.join(""));

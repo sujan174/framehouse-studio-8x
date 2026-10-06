@@ -43,6 +43,12 @@ describe("project curation and export", () => {
     if (exportResult && !exportResult.empty) {
       expect(exportResult.png.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
       expect(await sharp(exportResult.png).metadata()).toMatchObject({ width: 1600, format: "png" });
+      const title = await sharp(exportResult.png).extract({ left: 70, top: 95, width: 560, height: 55 }).raw().toBuffer();
+      let lightPixels = 0;
+      for (let offset = 0; offset < title.length; offset += 4) {
+        if (title[offset] > 180 && title[offset + 1] > 180 && title[offset + 2] > 180) lightPixels++;
+      }
+      expect(lightPixels).toBeGreaterThan(800);
     }
   });
 
