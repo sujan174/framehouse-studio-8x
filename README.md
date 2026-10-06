@@ -1,6 +1,6 @@
 # Framehouse Studio
 
-An independent creative studio for the 8x assignment. The foundation supports Clerk sign-in, organization workspaces, and persistent projects. The image workflow adds FLUX.1 schnell generation, a project asset feed, private previews, and downloads. The live image flow must be verified with a real provider request before this milestone is marked complete. Video, uploads, canvas editing, and model selection are deferred.
+An independent creative studio for the 8x assignment. Clerk workspaces contain persistent projects and FLUX.1 schnell image generations. In a project, users can choose an editable prompt direction, compare and shortlist results, assemble a captioned storyboard, and export a PNG contact sheet. Video, uploads, canvas editing, and a model catalogue are outside this scope.
 
 ## Local setup
 
@@ -12,7 +12,7 @@ npm run db:migrate
 npm run dev
 ```
 
-For integration tests, set `TEST_DATABASE_URL` to a separate disposable database. Tests truncate the project and generation tables. Provider tests use a fake HTTP response and spend no inference.
+For integration tests, set `TEST_DATABASE_URL` to a separate disposable database. Tests truncate the project and generation tables through cascading resets. Provider tests use a fake HTTP response and spend no inference.
 
 ```sh
 npm run lint
@@ -23,7 +23,7 @@ npm run build
 
 ## Deployment
 
-The Railway project uses one web service and PostgreSQL. Set `DATABASE_URL` on the web service to the Postgres service's private connection reference. Set Clerk's publishable and secret keys as service variables, along with the Clerk route variables from `.env.example`. Set `APP_ORIGIN` to the exact public origin, such as `https://studio.example.com`, so mutation checks work behind Railway's proxy. `railway.json` builds the app, runs committed migrations before deployment, starts Next.js on Railway's port, and probes `/api/health`. The readiness probe requires the projects and image generation tables to exist. Connect the `main` branch through Railway's GitHub integration and enable Wait for CI if the GitHub App becomes available. Until then, check the matching GitHub Actions run and deploy that commit manually with Railway CLI.
+The Railway project uses one web service and PostgreSQL. Set `DATABASE_URL` on the web service to the Postgres service's private connection reference. Set Clerk's publishable and secret keys as service variables, along with the Clerk route variables from `.env.example`. Set `APP_ORIGIN` to the exact public origin, such as `https://studio.example.com`, so mutation checks work behind Railway's proxy. `railway.json` builds the app, runs committed migrations before deployment, starts Next.js on Railway's port, and probes `/api/health`. `railpack.json` installs a runtime font so exported contact sheets contain legible text. The readiness probe requires the application tables to exist. Connect the `main` branch through Railway's GitHub integration and enable Wait for CI if the GitHub App becomes available. Until then, check the matching GitHub Actions run and deploy that commit manually with Railway CLI.
 
 The GitHub workflow runs lint, typecheck, Postgres integration tests, and the production build on pull requests and pushes to `main`. It uses an isolated test database and needs no Clerk secret.
 
@@ -37,5 +37,8 @@ One worker runs inside the web service. PostgreSQL queues generation records and
 
 Every private route derives the active organization and role from Clerk's verified server session. Project queries include the organization predicate in SQL. Members can create and edit projects; only the creator or an organization admin can archive one. Mutations require the browser origin and active workspace header to agree with the verified session. Twenty project creations per member and workspace are allowed per hour, enforced through a Postgres transaction.
 
+Project curation stores a versioned shortlist and ordered board in PostgreSQL. It accepts only successful image IDs belonging to the active project and workspace. A stale edit returns 409 instead of replacing newer work. Preview, download, and contact-sheet export remain private and use no shared cache. Curation and export do not call Workers AI or count toward generation allowance. The three preset thumbnails are original CSS guides; they are not generated examples.
+
 See `docs/foundation-build-brief.md` for the scope, and `CAPTURE-TEST.md` for agent capture setup.
 See `docs/verification.md` for observed local and live checks, screenshots, and deployment limitations.
+See `docs/creative-milestone.md` for the current product decisions and `docs/walkthrough-outline.md` for the camera-on demo sequence.

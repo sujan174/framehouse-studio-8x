@@ -13,4 +13,4 @@ The active Clerk organization and user come from the verified server session. Re
 
 ## Verification
 
-Local PostgreSQL integration tests cover persisted selections, quota neutrality, cross-workspace and mixed-project IDs, forged ownership, stale revisions, archived boards, and PNG dimensions and signature. The release checklist also requires a live preset, actual generation, comparison, shortlist, storyboard, reload, export, signed-out entry, phone layout, and matching Namespace CI and Railway deployment evidence. Record the observations after release; do not infer them from tests.
+Local PostgreSQL integration tests cover persisted selections, quota neutrality, cross-workspace and mixed-project IDs, forged ownership, stale revisions, archived boards, and PNG dimensions and text pixels. The complete live journey, export font correction, phone layout, and CI/deployment evidence are recorded in [verification.md](verification.md). The browser blocked a direct Beta-workspace export URL check; the PostgreSQL denial test passed, but that specific live request remains unobserved.
