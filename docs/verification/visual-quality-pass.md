@@ -18,3 +18,7 @@
 - Let storyboard and published story use editorial sequence and captions while keeping export, publication and frame controls discoverable.
 
 No generation provider, storage, auth, schema or quota behavior changes are planned.
+
+## First rendered iteration
+
+The first deployed pass improved the opening Create composition, full prompt readability, gallery emphasis, intentional empty cover, and private storyboard hierarchy. At 1280 × 720, three remaining defects were visible: the account name escaped the narrower sidebar; square results pushed their curation buttons below the viewport; and the public story's second square image had a dark letterbox band. The second pass hides the redundant account name, uses a 4:3 gallery crop with full image preview retained, and lets public frames size to their square aspect ratio. At phone width, the gallery keeps square previews and the full prompt and Generate action remain visible before scrolling.

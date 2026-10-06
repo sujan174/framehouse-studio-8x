@@ -28,7 +28,7 @@ export default async function StudioLayout({
         <StudioNavigation />
         <div className="sidebar-bottom">
           <span className="sidebar-label">ACCOUNT</span>
-          <UserButton showName />
+          <UserButton />
         </div>
       </aside>
       <div className="studio-content" key={session.orgId}>
