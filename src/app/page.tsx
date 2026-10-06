@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, Layers3, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowUpRight, Images, LayoutGrid, Share2 } from "lucide-react";
 
 export default function Home() {
   return (
@@ -19,11 +19,11 @@ export default function Home() {
       </header>
       <section className="hero wrap">
         <div className="hero-copy">
-          <p className="eyebrow">AN INDEPENDENT CREATIVE STUDIO</p>
+          <p className="eyebrow">A SPACE FOR VISUAL IDEAS</p>
           <h1>
-            Make the image.
+            Make an image.
             <br />
-            <em>Find the story.</em>
+            <em>Make it mean more.</em>
           </h1>
           <p className="hero-description">
             Start with a prompt or a visual reference. Make an image, keep the
@@ -37,41 +37,40 @@ export default function Home() {
               I have an account ↗
             </Link>
           </div>
-          <p className="hero-note">
-            Independent creative studio · Built for the 8x assignment
-          </p>
+          <p className="hero-note">Create → select → arrange → share</p>
         </div>
-        <div className="hero-editorial" aria-label="Editorial photography illustrating visual direction">
-          {/* These CC0 editorial photographs illustrate the creative process, not AI outputs. */}
+        <div className="hero-editorial" aria-label="Illustrative visual sequence using licensed editorial photography">
+          {/* CC0 editorial photographs are illustrative, not Framehouse outputs. */}
           {/* eslint-disable @next/next/no-img-element */}
           <img className="hero-editorial-main" src="/editorial/frontenac-dusk.jpg" alt="Chateau Frontenac illuminated at dusk" />
-          <img className="hero-editorial-detail" src="/editorial/petit-champlain-night.jpg" alt="A warmly lit stone street at night" />
-          <div className="hero-editorial-caption"><span>FRAMEHOUSE / VISUAL DIRECTION</span><span>Editorial photography · CC0</span></div>
+          <div className="hero-editorial-detail"><img src="/editorial/petit-champlain-night.jpg" alt="A warmly lit stone street at night"/><span>02 / A second frame</span></div>
+          <div className="hero-editorial-caption"><span>01 / A visual direction</span><span>Illustrative editorial photographs · CC0</span></div>
         </div>
       </section>
+      <div className="journey-line wrap"><span>01 &nbsp; Create</span><span>02 &nbsp; Keep the strongest</span><span>03 &nbsp; Tell the story</span></div>
       <section
         className="landing-features wrap"
         aria-label="Current capabilities"
       >
         <div>
-          <Layers3 />
-          <h2>Projects with purpose</h2>
-          <p>Keep prompts, generated images, and storyboards together.</p>
+          <Images />
+          <h2>Create from a direction</h2>
+          <p>Start with words or a private image reference.</p>
         </div>
         <div>
-          <ShieldCheck />
-          <h2>Space for your team</h2>
-          <p>Each workspace keeps its projects private and distinct.</p>
+          <LayoutGrid />
+          <h2>Choose what works</h2>
+          <p>Shortlist and compare versions in one project.</p>
         </div>
         <div>
-          <Sparkles />
-          <h2>Create, curate, export</h2>
-          <p>Start from a direction, compare results, and export your visual story.</p>
+          <Share2 />
+          <h2>Present a visual story</h2>
+          <p>Arrange frames, add captions, then export or share.</p>
         </div>
       </section>
       <footer className="landing-footer wrap">
         <span>FRAMEHOUSE / 2026</span>
-        <span>AN INDEPENDENT ASSIGNMENT PROJECT</span>
+        <span>CREATE WHAT COMES NEXT</span>
       </footer>
     </main>
   );

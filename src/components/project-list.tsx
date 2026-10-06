@@ -84,7 +84,7 @@ export function ProjectList({
                   key={p.id}
                 >
                   <div className="project-card-art">
-                    {initialCovers[p.id] ? <img src={`/api/projects/${p.id}/generations/${initialCovers[p.id]}/image`} alt="" loading="lazy" /> : <span>{p.title.slice(0, 1).toUpperCase()}</span>}
+                    {initialCovers[p.id] ? <img src={`/api/projects/${p.id}/generations/${initialCovers[p.id]}/image`} alt="" loading="lazy" /> : <div className="project-cover-empty"><span className="cover-shape cover-shape-one"/><span className="cover-shape cover-shape-two"/><span className="cover-shape cover-shape-three"/><strong>Ready for its first frame</strong></div>}
                   </div>
                   <div className="project-card-meta">
                     <span className="project-card-type">PROJECT</span>

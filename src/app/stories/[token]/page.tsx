@@ -13,7 +13,7 @@ export default async function StoryPage({ params }: { params: Promise<{ token: s
   const story = await getPublicStory(db, token);
   if (!story) notFound();
   return <main className="public-story"><div className="public-story-top"><Link href="/">FRAMEHOUSE</Link><span>Shared visual story</span></div>
-    <header><p className="eyebrow">A CURATED STORY</p><h1>{story.title}</h1><p>{story.frameCount} {story.frameCount === 1 ? "frame" : "frames"} · Presented by its creator</p></header>
+    <header><p className="story-kicker">An image sequence</p><h1>{story.title}</h1><p>{story.frameCount} {story.frameCount === 1 ? "frame" : "frames"} · Curated and presented by its creator</p></header>
     <ol>{story.frames.map((frame, index) => <li key={index}><img src={`/api/stories/${token}/frames/${index}`} alt={`Frame ${index + 1}`} /><div><span>{String(index + 1).padStart(2, "0")}</span><p>{frame.caption || "Untitled frame"}</p></div></li>)}</ol>
     <footer>Framehouse · A visual story assembled by hand</footer></main>;
 }

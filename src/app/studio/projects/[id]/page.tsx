@@ -39,7 +39,7 @@ export default async function ProjectPage({
         <ChevronLeft size={17} /> All projects
       </Link>
       <WorkspaceBoundary serverOrgId={tenant.orgId}>
-        <header className="project-studio-header"><div><p className="eyebrow">PROJECT / WORKSPACE</p><h1>{project.title}</h1><p>{project.description || "A space for ideas worth making."}</p></div><span className="project-state">ACTIVE PROJECT</span></header>
+        <header className="project-studio-header"><div><h1>{project.title}</h1><p>{project.description || "A space for ideas worth making."}</p></div></header>
         <ImageWorkspace projectId={project.id} serverOrgId={tenant.orgId}
           initialGenerations={(generations ?? []).map(generationView)}
           initialCreativeState={creativeState!} projectTitle={project.title}
