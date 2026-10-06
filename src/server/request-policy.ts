@@ -42,3 +42,25 @@ export async function readSmallJson(request: Request) {
   }
   return JSON.parse(body) as unknown;
 }
+
+export async function readLimitedBytes(request: Request, limit: number): Promise<Buffer> {
+  const length = request.headers.get("content-length");
+  if (length && (!/^\d+$/.test(length) || Number(length) > limit)) throw new SyntaxError();
+  if (!request.body) throw new SyntaxError();
+  const reader = request.body.getReader();
+  const chunks: Buffer[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > limit) throw new SyntaxError();
+      chunks.push(Buffer.from(value));
+    }
+  } catch {
+    await reader.cancel().catch(() => {});
+    throw new SyntaxError();
+  } finally { reader.releaseLock(); }
+  return Buffer.concat(chunks, size);
+}

@@ -1,7 +1,7 @@
 import { and, count, desc, eq, gt, inArray, isNull, lt, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { z } from "zod";
-import { generationImages, imageGenerations, projects } from "../db/schema";
+import { generationImages, imageGenerations, projects, referenceImages } from "../db/schema";
 import { getProject } from "../projects/repository";
 import type { TenantContext } from "../tenant";
 
@@ -10,7 +10,10 @@ export const generationInputSchema = z.strictObject({
   prompt: z.string().trim().min(1).max(2048),
   steps: z.union([z.literal(4), z.literal(6), z.literal(8)]),
   clientRequestId: z.uuid(),
-});
+  referenceGenerationId: z.uuid().optional(),
+  referenceUploadId: z.uuid().optional(),
+}).refine((value) => !(value.referenceGenerationId && value.referenceUploadId))
+  .refine((value) => !(value.referenceGenerationId || value.referenceUploadId) || value.steps === 4);
 export type GenerationFailure = "provider_timeout" | "provider_quota" | "provider_unavailable" | "invalid_output" | "interrupted" | "configuration" | "project_archived";
 export class GenerationBusyError extends Error {
   constructor() { super("A generation is already in progress"); }
@@ -21,6 +24,7 @@ export class SubmissionConflictError extends Error {
 export class GenerationLimitError extends Error {
   constructor() { super("Daily image limit reached"); }
 }
+export class UnavailableReferenceError extends Error { constructor() { super("Reference is unavailable in this project"); } }
 export const USER_DAILY_LIMIT = 5;
 export const GLOBAL_DAILY_LIMIT = 20;
 function utcDayStart() { const day = new Date(); day.setUTCHours(0, 0, 0, 0); return day; }
@@ -79,9 +83,25 @@ export async function createGeneration(db: Database, tenant: TenantContext, proj
       eq(imageGenerations.clientRequestId, parsed.clientRequestId),
     )).limit(1);
     if (existing[0]) {
-      if (existing[0].projectId !== projectId || existing[0].prompt !== parsed.prompt || existing[0].steps !== parsed.steps)
+      if (existing[0].projectId !== projectId || existing[0].prompt !== parsed.prompt || existing[0].steps !== parsed.steps ||
+          existing[0].referenceGenerationId !== (parsed.referenceGenerationId ?? null) ||
+          existing[0].referenceUploadId !== (parsed.referenceUploadId ?? null))
         throw new SubmissionConflictError();
       return existing[0];
+    }
+    if (parsed.referenceGenerationId) {
+      const source = await tx.select({ id: generationImages.generationId }).from(generationImages)
+        .innerJoin(imageGenerations, and(eq(imageGenerations.id, generationImages.generationId),
+          eq(imageGenerations.clerkOrgId, generationImages.clerkOrgId)))
+        .where(and(eq(imageGenerations.id, parsed.referenceGenerationId), eq(imageGenerations.projectId, projectId),
+          eq(imageGenerations.clerkOrgId, tenant.orgId), eq(imageGenerations.status, "succeeded"))).limit(1);
+      if (!source[0]) throw new UnavailableReferenceError();
+    }
+    if (parsed.referenceUploadId) {
+      const source = await tx.select({ id: referenceImages.id }).from(referenceImages).where(and(
+        eq(referenceImages.id, parsed.referenceUploadId), eq(referenceImages.projectId, projectId),
+        eq(referenceImages.clerkOrgId, tenant.orgId))).limit(1);
+      if (!source[0]) throw new UnavailableReferenceError();
     }
     const busy = await tx.select({ total: count() }).from(imageGenerations).where(and(
       eq(imageGenerations.clerkOrgId, tenant.orgId), eq(imageGenerations.creatorUserId, tenant.userId),
@@ -106,9 +126,30 @@ export async function createGeneration(db: Database, tenant: TenantContext, proj
       clientRequestId: parsed.clientRequestId,
       prompt: parsed.prompt,
       steps: parsed.steps,
+      model: parsed.referenceGenerationId || parsed.referenceUploadId ? "flux-2-klein-4b" : "flux-1-schnell",
+      referenceGenerationId: parsed.referenceGenerationId ?? null,
+      referenceUploadId: parsed.referenceUploadId ?? null,
     }).returning();
     return rows[0];
   });
+}
+
+export async function getJobReference(db: Database, job: typeof imageGenerations.$inferSelect) {
+  if (job.referenceGenerationId) {
+    const rows = await db.select({ base64: generationImages.imageBase64 }).from(generationImages)
+      .innerJoin(imageGenerations, and(eq(imageGenerations.id, generationImages.generationId),
+        eq(imageGenerations.clerkOrgId, generationImages.clerkOrgId)))
+      .where(and(eq(imageGenerations.id, job.referenceGenerationId), eq(imageGenerations.projectId, job.projectId),
+        eq(imageGenerations.clerkOrgId, job.clerkOrgId), eq(imageGenerations.status, "succeeded"))).limit(1);
+    return rows[0] ? Buffer.from(rows[0].base64, "base64") : null;
+  }
+  if (job.referenceUploadId) {
+    const rows = await db.select({ base64: referenceImages.imageBase64 }).from(referenceImages).where(and(
+      eq(referenceImages.id, job.referenceUploadId), eq(referenceImages.projectId, job.projectId),
+      eq(referenceImages.clerkOrgId, job.clerkOrgId))).limit(1);
+    return rows[0] ? Buffer.from(rows[0].base64, "base64") : null;
+  }
+  return null;
 }
 
 export async function finishGeneration(db: Database, id: string, image: Buffer) {

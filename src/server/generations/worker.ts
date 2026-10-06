@@ -5,13 +5,15 @@ import {
   claimNextGeneration,
   failGeneration,
   finishGeneration,
+  getJobReference,
   recoverStaleGenerations,
   type GenerationFailure,
 } from "./repository";
 import { generateFluxImage, ProviderError } from "./flux-provider";
+import { generateFluxRemix } from "./flux2-provider";
 
 type Database = NodePgDatabase<Record<string, never>>;
-type Generator = (input: Pick<ImageGeneration, "prompt" | "steps">) => Promise<Buffer>;
+type Generator = (input: ImageGeneration, reference: Buffer | null) => Promise<Buffer>;
 
 export async function runOneGeneration(db: Database, pool: Pool, generate: Generator) {
   const client = await pool.connect();
@@ -24,7 +26,9 @@ export async function runOneGeneration(db: Database, pool: Pool, generate: Gener
     const job = await claimNextGeneration(db);
     if (!job) return null;
     try {
-      const image = await generate({ prompt: job.prompt, steps: job.steps });
+      const reference = await getJobReference(db, job);
+      if (job.model === "flux-2-klein-4b" && !reference) throw new ProviderError("invalid_output");
+      const image = await generate(job, reference);
       await finishGeneration(db, job.id, image);
     } catch (error) {
       const code: GenerationFailure = error instanceof ProviderError ? error.code : "provider_unavailable";
@@ -42,10 +46,12 @@ export async function runOneGeneration(db: Database, pool: Pool, generate: Gener
 }
 
 export function startGenerationWorker(db: Database, pool: Pool) {
-  const generate: Generator = (input) => generateFluxImage(input, {
-    accountId: process.env.CLOUDFLARE_ACCOUNT_ID ?? "",
-    token: process.env.CLOUDFLARE_API_TOKEN ?? "",
-  });
+  const generate: Generator = (input, reference) => {
+    const credentials = { accountId: process.env.CLOUDFLARE_ACCOUNT_ID ?? "", token: process.env.CLOUDFLARE_API_TOKEN ?? "" };
+    if (input.model === "flux-2-klein-4b" && reference) return generateFluxRemix({ prompt: input.prompt, reference }, credentials);
+    if (input.model === "flux-1-schnell") return generateFluxImage({ prompt: input.prompt, steps: input.steps }, credentials);
+    throw new ProviderError("invalid_output");
+  };
   let working = false;
   const tick = async () => {
     if (working) return;

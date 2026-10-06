@@ -6,9 +6,11 @@ import {
   RateLimitError,
   WorkspaceError,
 } from "./tenant";
-import { GenerationBusyError, GenerationLimitError, SubmissionConflictError } from "./generations/repository";
+import { GenerationBusyError, GenerationLimitError, SubmissionConflictError, UnavailableReferenceError } from "./generations/repository";
 import { InvalidCreativeImageError, StaleCreativeStateError } from "./creative/repository";
-export { readSmallJson, verifyMutationRequest } from "./request-policy";
+import { EmptyStoryError, PublicationForbiddenError } from "./creative/publication";
+import { InvalidReferenceError, ReferenceLimitError } from "./generations/references";
+export { readLimitedBytes, readSmallJson, verifyMutationRequest } from "./request-policy";
 export function errorResponse(error: unknown) {
   const headers = { "Cache-Control": "private, no-store" };
   if (error instanceof AuthenticationError)
@@ -17,6 +19,16 @@ export function errorResponse(error: unknown) {
     return Response.json({ error: "Choose a workspace" }, { status: 403, headers });
   if (error instanceof AuthorizationError)
     return Response.json({ error: "Not authorized" }, { status: 403, headers });
+  if (error instanceof PublicationForbiddenError)
+    return Response.json({ error: "Only the project owner or a workspace admin can publish this story." }, { status: 403, headers });
+  if (error instanceof EmptyStoryError)
+    return Response.json({ error: "Add at least one available image to the storyboard first." }, { status: 400, headers });
+  if (error instanceof InvalidReferenceError)
+    return Response.json({ error: "Use a valid JPEG, PNG, or WebP image between 64 and 6000 pixels per side, up to 5 MB." }, { status: 400, headers });
+  if (error instanceof UnavailableReferenceError)
+    return Response.json({ error: "Choose a reference from this project." }, { status: 400, headers });
+  if (error instanceof ReferenceLimitError)
+    return Response.json({ error: "This project has reached its 12 reference image limit." }, { status: 429, headers });
   if (error instanceof GenerationBusyError)
     return Response.json({ error: "Finish the current image before starting another." }, { status: 409, headers });
   if (error instanceof SubmissionConflictError)

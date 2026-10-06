@@ -154,7 +154,7 @@ describe("image generation ownership", () => {
     });
     const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xd9]);
     await runOneGeneration(db, pool, async (input) => {
-      expect(input).toEqual({ prompt: "A mossy courtyard", steps: 4 });
+      expect(input).toMatchObject({ prompt: "A mossy courtyard", steps: 4, model: "flux-1-schnell" });
       return jpeg;
     });
     expect((await getGeneration(db, alice, project.id, first!.id))?.status).toBe("succeeded");

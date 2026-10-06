@@ -4,7 +4,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { ArrowDownToLine, ArrowUpRight, ArrowUp, ArrowDown, ImagePlus, RotateCcw, X, Heart, PanelsTopLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowDownToLine, ArrowUpRight, ArrowUp, ArrowDown, ImagePlus, RotateCcw, X, Heart, PanelsTopLeft, Plus, Trash2, Link2, Copy, ShieldOff } from "lucide-react";
 import type { GenerationView } from "@/server/generations/view";
 import type { CreativeStateView } from "@/server/creative/repository";
 
@@ -23,14 +23,19 @@ const failureCopy: Record<string, string> = {
   configuration: "Image generation is temporarily unavailable. The service needs provider configuration.",
   project_archived: "This project was archived before image creation began.",
 };
+type ReferenceView = { id: string; createdAt: string };
+type ReferenceChoice = { kind: "generation" | "upload"; id: string };
+type PublicationView = { published: boolean; canManage: boolean; token: string | null };
 
-export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGenerations, initialDailyUsed, initialCreativeState, available }: {
+export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGenerations, initialDailyUsed, initialCreativeState, initialReferences, initialPublication, available }: {
   projectId: string;
   projectTitle: string;
   serverOrgId: string;
   initialGenerations: GenerationView[];
   initialDailyUsed: number;
   initialCreativeState: CreativeStateView;
+  initialReferences: ReferenceView[];
+  initialPublication: PublicationView;
   available: boolean;
 }) {
   const { orgId, userId, isLoaded } = useAuth();
@@ -51,6 +56,12 @@ export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGe
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [savedPrompt, setSavedPrompt] = useState<string | null>(null);
   const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [references, setReferences] = useState(initialReferences);
+  const [reference, setReference] = useState<ReferenceChoice | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [publication, setPublication] = useState(initialPublication);
+  const [publishing, setPublishing] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
   const [imageAttempts, setImageAttempts] = useState<Record<string, number>>({});
   const requestId = useRef<string | null>(null);
@@ -127,6 +138,44 @@ export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGe
     setActivePreset(preset.id);
     promptRef.current?.focus();
   }
+  function selectReference(choice: ReferenceChoice) {
+    if (prompt.trim()) setSavedPrompt(prompt);
+    setReference(choice);
+    setActivePreset(null);
+    updatePrompt("Use the reference image as a starting point. Keep its main subject and composition, but change the lighting to warm late-afternoon sunlight.");
+    setView("create");
+    composerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    promptRef.current?.focus();
+  }
+  async function uploadReference(file: File) {
+    if (switching || uploading) return;
+    if (file.size > 5_000_000) { setMessage("Choose an image under 5 MB."); return; }
+    setUploading(true); setMessage("");
+    try {
+      const response = await fetch(`/api/projects/${projectId}/references`, { method: "POST",
+        headers: { "Content-Type": file.type || "application/octet-stream", "X-Workspace-Id": serverOrgId }, body: file });
+      const body = await response.json() as { reference?: ReferenceView; error?: string };
+      if (!response.ok || !body.reference) throw new Error(body.error ?? "Could not upload this image");
+      if (activeOrg.current === serverOrgId) { setReferences((current) => [body.reference!, ...current]); selectReference({ kind: "upload", id: body.reference.id }); }
+    } catch (error) { if (activeOrg.current === serverOrgId) setMessage(error instanceof Error ? error.message : "Could not upload this image"); }
+    finally { setUploading(false); }
+  }
+  async function changePublication(method: "POST" | "DELETE") {
+    if (switching || publishing) return;
+    setPublishing(true); setMessage("");
+    try {
+      const response = await fetch(`/api/projects/${projectId}/publication`, { method, headers: { "X-Workspace-Id": serverOrgId } });
+      const body = await response.json() as { publication?: PublicationView; error?: string };
+      if (!response.ok || !body.publication) throw new Error(body.error ?? "Could not update sharing");
+      if (activeOrg.current === serverOrgId) { setPublication(body.publication); setCopied(false); }
+    } catch (error) { if (activeOrg.current === serverOrgId) setMessage(error instanceof Error ? error.message : "Could not update sharing"); }
+    finally { setPublishing(false); }
+  }
+  async function copyLink() {
+    if (!publication.token) return;
+    try { await navigator.clipboard.writeText(`${location.origin}/stories/${publication.token}`); setCopied(true); }
+    catch { setMessage("Could not copy the link. Open it below and copy the address."); }
+  }
   async function saveCreative(next: Pick<CreativeStateView, "shortlist" | "frames">) {
     if (switching || savingCreative) return;
     setSavingCreative(true);
@@ -181,7 +230,9 @@ export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGe
       const response = await fetch(`/api/projects/${projectId}/generations`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Workspace-Id": serverOrgId },
-        body: JSON.stringify({ prompt, steps, clientRequestId: requestId.current }),
+        body: JSON.stringify({ prompt, steps: reference ? 4 : steps, clientRequestId: requestId.current,
+          ...(reference?.kind === "generation" ? { referenceGenerationId: reference.id } : {}),
+          ...(reference?.kind === "upload" ? { referenceUploadId: reference.id } : {}) }),
       });
       const body = await response.json() as { generation?: GenerationView; dailyUsed?: number; error?: string };
       if (!response.ok || !body.generation) throw new Error(body.error ?? "Could not start image");
@@ -201,6 +252,8 @@ export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGe
   function reuse(item: GenerationView) {
     setPrompt(item.prompt);
     setSteps(item.steps);
+    setReference(item.referenceGenerationId ? { kind: "generation", id: item.referenceGenerationId } :
+      item.referenceUploadId ? { kind: "upload", id: item.referenceUploadId } : null);
     setActivePreset(null);
     requestId.current = null;
     setMessage("");
@@ -209,6 +262,7 @@ export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGe
     promptRef.current?.focus();
   }
   const imageUrl = (id: string) => `/api/projects/${projectId}/generations/${id}/image?attempt=${imageAttempts[id] ?? 0}`;
+  const referenceUrl = (id: string) => `/api/projects/${projectId}/references/${id}/image`;
   function retryImage(id: string) {
     setBrokenImages((current) => ({ ...current, [id]: false }));
     setImageAttempts((current) => ({ ...current, [id]: (current[id] ?? 0) + 1 }));
@@ -242,7 +296,13 @@ export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGe
     <section className="image-composer" ref={composerRef} aria-labelledby="composer-title">
       <div className="composer-heading">
         <div><p className="section-index">01 / CREATE</p><h2 id="composer-title">Create an image</h2><p>Choose a direction or write your own scene.</p></div>
-        <span className="model-label">FLUX.1 schnell</span>
+        <span className="model-label">{reference ? "FLUX.2 klein 4B · Remix" : "FLUX.1 schnell"}</span>
+      </div>
+      <div className="reference-panel"><div className="reference-panel-heading"><strong>Visual reference</strong><span>{reference ? "Guides this new image" : "Optional · remix a result or upload your own"}</span></div>
+        {reference ? <div className="selected-reference"><img src={reference.kind === "generation" ? imageUrl(reference.id) : referenceUrl(reference.id)} alt="Selected visual reference" /><div><strong>{reference.kind === "generation" ? "Project image" : "Private upload"}</strong><small>FLUX.2 klein 4B will use this image with your prompt.</small><button type="button" onClick={() => { setReference(null); requestId.current = null; }}>Remove reference · use FLUX.1</button></div></div> : null}
+        <label className="reference-upload">{uploading ? "Uploading reference…" : "Upload a reference"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading || references.length >= 12} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadReference(file); event.target.value = ""; }}/></label>
+        <p>JPEG, PNG or WebP · 5 MB maximum · kept private in this project. Uploaded images are resized for the model.</p>
+        {references.length > 0 && <div className="reference-strip" aria-label="Uploaded project references">{references.map((item) => <button type="button" key={item.id} onClick={() => selectReference({ kind: "upload", id: item.id })} aria-label="Use uploaded reference"><img src={referenceUrl(item.id)} alt="Uploaded reference" /></button>)}</div>}
       </div>
       <div className="preset-list" aria-label="Prompt directions">{presets.map((preset) => <button type="button" key={preset.id} className={`preset-card ${activePreset === preset.id ? "selected" : ""}`} onClick={() => applyPreset(preset)} aria-label={`Use ${preset.title} prompt starter: ${preset.effect}`}><span className={`preset-art preset-${preset.id}`} aria-hidden="true"/><span><strong>{preset.title}</strong><small>{preset.effect}</small></span></button>)}</div>
       <p className="preset-note">Original graphic guides · Prompt templates, not model examples</p>
@@ -252,14 +312,14 @@ export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGe
         onChange={(event) => updatePrompt(event.target.value)} placeholder={example} />
       {!prompt && <button type="button" className="example-prompt" onClick={() => { updatePrompt(example); promptRef.current?.focus(); }}>Use an example prompt <ArrowUpRight size={15} /></button>}
       <div className="composer-footer">
-        <details className="image-settings"><summary>Image settings <span>· {steps} steps</span></summary>
+        {!reference && <details className="image-settings"><summary>Image settings <span>· {steps} steps</span></summary>
           <label htmlFor="image-steps">Generation steps</label>
           <select id="image-steps" value={steps} onChange={(event) => updateSteps(Number(event.target.value))}>
             <option value={4}>4 · Fast default</option><option value={6}>6 · More detail</option><option value={8}>8 · Most detail</option>
           </select><p>Higher steps take longer and use more of the free allowance. This demo allows up to five attempts per member each UTC day.</p>
-        </details>
+        </details>}
         <button type="button" className="button generate-button" disabled={!available || dailyUsed >= 5 || submitting || !prompt.trim() || generations.some((item) => item.status === "queued" || item.status === "running")}
-          onClick={() => void submit()}><ImagePlus size={18} />{submitting ? "Starting…" : "Generate image"}</button>
+          onClick={() => void submit()}><ImagePlus size={18} />{submitting ? "Starting…" : reference ? "Create remix" : "Generate image"}</button>
       </div>
       <p className="composer-allowance">{dailyUsed}/5 image attempts used today · resets 00:00 UTC. Shared free capacity may end sooner.</p>
       {!available && <p role="status" className="availability-note">Image generation is being configured. Your projects remain available.</p>}
@@ -274,16 +334,20 @@ export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGe
           <div className="image-frame">{item.status === "succeeded" && brokenImages[item.id] ? <div className="image-state" role="alert"><ImagePlus size={30} /><strong>Preview could not load</strong><span>Check your connection and workspace.</span><button type="button" className="image-retry" onClick={() => retryImage(item.id)}>Retry preview</button></div> : item.status === "succeeded" ? <button type="button" className="image-preview-trigger" onClick={() => setPreviewId(item.id)} aria-label={`Preview image for ${item.prompt}`}>
             <img src={imageUrl(item.id)} alt={item.prompt} loading="lazy" onError={() => setBrokenImages((current) => ({ ...current, [item.id]: true }))} />
           </button> : <div className={`image-state image-state-${item.status}`} role="status"><ImagePlus size={30} /><strong>{item.status === "queued" ? "In the queue" : item.status === "running" ? "Creating your image…" : "Image could not be made"}</strong><span>{item.status === "failed" ? failureCopy[item.failureCode ?? ""] ?? "Please try another version." : "Your prompt is saved in this project."}</span></div>}</div>
-          <div className="image-card-body"><p className="image-card-prompt">{item.prompt}</p><p className="image-meta">FLUX.1 schnell · {item.steps} steps · {new Date(item.createdAt).toLocaleDateString()}</p>
+          <div className="image-card-body"><p className="image-card-prompt">{item.prompt}</p><p className="image-meta">{item.model === "flux-2-klein-4b" ? "FLUX.2 klein 4B · Reference remix" : `FLUX.1 schnell · ${item.steps} steps`} · {new Date(item.createdAt).toLocaleDateString()}</p>
+            {(item.referenceGenerationId || item.referenceUploadId) && <div className="image-source"><img src={item.referenceGenerationId ? imageUrl(item.referenceGenerationId) : referenceUrl(item.referenceUploadId!)} alt="Source for this remix"/><span>Remixed from {item.referenceGenerationId ? "a project image" : "a private upload"}</span></div>}
             {item.status === "succeeded" && <div className="curation-actions"><button type="button" disabled={savingCreative || (!creative.shortlist.includes(item.id) && creative.shortlist.length >= 12)} aria-pressed={creative.shortlist.includes(item.id)} onClick={() => toggleShortlist(item.id)}><Heart size={15} fill={creative.shortlist.includes(item.id) ? "currentColor" : "none"}/> {creative.shortlist.includes(item.id) ? "Shortlisted" : "Shortlist"}</button><button type="button" aria-pressed={compareIds.includes(item.id)} onClick={() => setCompareIds((current) => current.includes(item.id) ? current.filter((value) => value !== item.id) : [...current.slice(-1), item.id])}><PanelsTopLeft size={15}/> Compare</button><button type="button" disabled={savingCreative || (!creative.frames.some((frame) => frame.generationId === item.id) && creative.frames.length >= 8)} onClick={() => toggleFrame(item.id)}><Plus size={15}/> {creative.frames.some((frame) => frame.generationId === item.id) ? "Remove from story" : "Add to story"}</button></div>}
             <div className="image-actions"><button type="button" onClick={() => reuse(item)}><RotateCcw size={15} /> Use prompt again</button>
-              {item.status === "succeeded" && <button type="button" onClick={() => void downloadImage(item.id)}><ArrowDownToLine size={15} /> Download</button>}
+              {item.status === "succeeded" && <><button type="button" onClick={() => selectReference({ kind: "generation", id: item.id })}><ImagePlus size={15}/> Remix this</button><button type="button" onClick={() => void downloadImage(item.id)}><ArrowDownToLine size={15} /> Download</button></>}
             </div>
           </div>
         </article>)}</div>}
       {showShortlist && !creative.shortlist.length && <p className="gallery-empty-note">No shortlisted images yet. Use Shortlist on a result you want to keep close.</p>}
     </section>
     </div> : <section className="storyboard" aria-labelledby="storyboard-title"><div className="storyboard-heading"><div><p className="section-index">03 / CURATE</p><h2 id="storyboard-title">{projectTitle} / visual story</h2><p>Arrange successful images, add captions, and export a PNG contact sheet. Frames remain in your gallery.</p></div><button type="button" className="button" disabled={!creative.frames.length} onClick={() => void exportStory()}><ArrowDownToLine size={17}/> Export PNG</button></div>
+      <div className="publication-panel"><div><strong>{publication.published ? "Published story" : "Private story"}</strong><p>{publication.published ? "A read-only snapshot is available to anyone with its link. Later board edits stay private until you revoke and publish again." : "Only your workspace can see this board. Publish an intentional snapshot when it is ready."}</p></div>
+        {publication.canManage && <div className="publication-actions">{publication.published && publication.token ? <><button type="button" onClick={() => void copyLink()}><Copy size={15}/>{copied ? "Copied" : "Copy link"}</button><a href={`/stories/${publication.token}`} target="_blank" rel="noopener noreferrer"><Link2 size={15}/> Open story</a><button type="button" disabled={publishing} onClick={() => void changePublication("DELETE")}><ShieldOff size={15}/> Revoke</button></> : <button type="button" className="button button-small" disabled={publishing || !creative.frames.length || savingCreative} onClick={() => void changePublication("POST")}><Link2 size={15}/>{publishing ? "Publishing…" : "Publish story"}</button>}</div>}
+      </div>
       {!creative.frames.length ? <div className="image-empty"><PanelsTopLeft size={32}/><h3>Start with a strong image.</h3><p>Open Create and add a generated result to your story. Reorder it here when you have more.</p><button type="button" className="button button-small" onClick={() => setView("create")}>Browse images</button></div> : <ol className="storyboard-grid">{creative.frames.map((frame, index) => <li key={frame.generationId} className="story-frame"><div className="story-image"><img src={imageUrl(frame.generationId)} alt={generations.find((item) => item.id === frame.generationId)?.prompt ?? "Story frame"}/><span>{String(index + 1).padStart(2, "0")}</span></div><label htmlFor={`caption-${frame.generationId}`}>Caption</label><input id={`caption-${frame.generationId}`} maxLength={160} value={frame.caption} disabled={savingCreative} placeholder="Describe this moment" onChange={(event) => setCreative((current) => ({ ...current, frames: current.frames.map((part) => part.generationId === frame.generationId ? { ...part, caption: event.target.value } : part) }))} onBlur={() => { if (creative.frames[index].caption !== persistedCreative.current.frames.find((part) => part.generationId === frame.generationId)?.caption) void saveCreative(creative); }}/><div className="frame-controls"><button type="button" disabled={savingCreative || index === 0} onClick={() => moveFrame(index, -1)} aria-label={`Move frame ${index + 1} earlier`}><ArrowUp size={16}/> Earlier</button><button type="button" disabled={savingCreative || index === creative.frames.length - 1} onClick={() => moveFrame(index, 1)} aria-label={`Move frame ${index + 1} later`}><ArrowDown size={16}/> Later</button><button type="button" disabled={savingCreative} onClick={() => toggleFrame(frame.generationId)} aria-label={`Remove frame ${index + 1} from story`}><Trash2 size={16}/> Remove</button></div></li>)}</ol>}
       <p className="story-footnote">Manually curated from this project’s images · No video or character consistency guarantee</p>
     </section>}

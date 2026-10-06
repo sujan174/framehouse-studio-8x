@@ -36,6 +36,13 @@
       "when": 1791232077381,
       "tag": "0004_safe_shockwave",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791268093491,
+      "tag": "0005_friendly_terrax",
+      "breakpoints": true
     }
   ]
 }

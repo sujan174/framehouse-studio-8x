@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { readSmallJson, verifyMutationRequest } from "../src/server/request-policy";
+import { readLimitedBytes, readSmallJson, verifyMutationRequest } from "../src/server/request-policy";
 
 const endpoint = "https://studio.example.test/api/projects";
 function request(origin?: string, workspace?: string) {
@@ -53,6 +53,21 @@ describe("mutation request boundary", () => {
         "org_active",
       ),
     ).not.toThrow();
+  });
+});
+
+describe("upload request size", () => {
+  it("rejects a forged large content length before reading", async () => {
+    const request = new Request(endpoint, { method: "POST", headers: { "content-length": "5000001" }, body: "tiny" });
+    await expect(readLimitedBytes(request, 5_000_000)).rejects.toThrow(SyntaxError);
+  });
+  it("cancels an upload stream once its body exceeds the limit", async () => {
+    let canceled = false;
+    const request = new Request(endpoint, { method: "POST", duplex: "half",
+      body: new ReadableStream({ pull(controller) { controller.enqueue(new Uint8Array(1024)); },
+        cancel() { canceled = true; } }) } as RequestInit);
+    await expect(readLimitedBytes(request, 2048)).rejects.toThrow(SyntaxError);
+    expect(canceled).toBe(true);
   });
 });
 
