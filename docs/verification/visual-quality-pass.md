@@ -22,3 +22,5 @@ No generation provider, storage, auth, schema or quota behavior changes are plan
 ## First rendered iteration
 
 The first deployed pass improved the opening Create composition, full prompt readability, gallery emphasis, intentional empty cover, and private storyboard hierarchy. At 1280 × 720, three remaining defects were visible: the account name escaped the narrower sidebar; square results pushed their curation buttons below the viewport; and the public story's second square image had a dark letterbox band. The second pass hides the redundant account name, uses a 4:3 gallery crop with full image preview retained, and lets public frames size to their square aspect ratio. At phone width, the gallery keeps square previews and the full prompt and Generate action remain visible before scrolling.
+
+The 390 × 844 check then showed no creative image until scrolling past the mobile composer. A small, authorized thumbnail of the latest successful project image now sits above the composer on phones. It does not appear for an empty project and does not replace the full gallery or preview.

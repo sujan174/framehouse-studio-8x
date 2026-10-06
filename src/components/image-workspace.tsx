@@ -293,9 +293,11 @@ export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGe
   }
 
   if (switching) return <div className="empty-state"><h2>Switching workspace…</h2><p>Loading the right images for your workspace.</p></div>;
+  const latestSuccessful = generations.find((item) => item.status === "succeeded");
   return <div className="image-workspace">
     <nav className="creative-tabs" aria-label="Project views"><button type="button" className={view === "create" ? "active" : ""} onClick={() => setView("create")}>Create <span>{generations.filter((item) => item.status === "succeeded").length} images</span></button><button type="button" className={view === "storyboard" ? "active" : ""} onClick={() => setView("storyboard")}>Storyboard <span>{creative.frames.length} frames</span></button></nav>
     {message && <p role="alert" className="form-error creative-error">{message}</p>}
+    {view === "create" && latestSuccessful && <div className="mobile-latest"><img src={imageUrl(latestSuccessful.id)} alt="Latest image in this project"/><div><span>Latest frame</span><strong>Your images stay with this project.</strong></div></div>}
     {view === "create" ? <div className="creative-layout">
     <section className="image-composer" ref={composerRef} aria-labelledby="composer-title">
       <div className="composer-heading">
