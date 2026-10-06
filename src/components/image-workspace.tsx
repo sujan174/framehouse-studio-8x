@@ -144,7 +144,7 @@ export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGe
     setActivePreset(null);
     updatePrompt("Use the reference image as a starting point. Keep its main subject and composition, but change the lighting to warm late-afternoon sunlight.");
     setView("create");
-    composerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    composerRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
     promptRef.current?.focus();
   }
   async function uploadReference(file: File) {
@@ -162,6 +162,10 @@ export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGe
   }
   async function changePublication(method: "POST" | "DELETE") {
     if (switching || publishing) return;
+    if (method === "POST" && (savingCreative || JSON.stringify(creative.frames) !== JSON.stringify(persistedCreative.current.frames))) {
+      setMessage("Finish saving the storyboard before publishing it.");
+      return;
+    }
     setPublishing(true); setMessage("");
     try {
       const response = await fetch(`/api/projects/${projectId}/publication`, { method, headers: { "X-Workspace-Id": serverOrgId } });
@@ -258,7 +262,7 @@ export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGe
     requestId.current = null;
     setMessage("");
     setView("create");
-    composerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    composerRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
     promptRef.current?.focus();
   }
   const imageUrl = (id: string) => `/api/projects/${projectId}/generations/${id}/image?attempt=${imageAttempts[id] ?? 0}`;
@@ -300,7 +304,7 @@ export function ImageWorkspace({ projectId, projectTitle, serverOrgId, initialGe
       </div>
       <div className="reference-panel"><div className="reference-panel-heading"><strong>Visual reference</strong><span>{reference ? "Guides this new image" : "Optional · remix a result or upload your own"}</span></div>
         {reference ? <div className="selected-reference"><img src={reference.kind === "generation" ? imageUrl(reference.id) : referenceUrl(reference.id)} alt="Selected visual reference" /><div><strong>{reference.kind === "generation" ? "Project image" : "Private upload"}</strong><small>FLUX.2 klein 4B will use this image with your prompt.</small><button type="button" onClick={() => { setReference(null); requestId.current = null; }}>Remove reference · use FLUX.1</button></div></div> : null}
-        <label className="reference-upload">{uploading ? "Uploading reference…" : "Upload a reference"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading || references.length >= 12} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadReference(file); event.target.value = ""; }}/></label>
+        <label className="reference-upload">{uploading ? "Uploading reference…" : references.length >= 12 ? "12 uploads reached" : "Upload a reference"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading || references.length >= 12} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadReference(file); event.target.value = ""; }}/></label>
         <p>JPEG, PNG or WebP · 5 MB maximum · kept private in this project. Uploaded images are resized for the model.</p>
         {references.length > 0 && <div className="reference-strip" aria-label="Uploaded project references">{references.map((item) => <button type="button" key={item.id} onClick={() => selectReference({ kind: "upload", id: item.id })} aria-label="Use uploaded reference"><img src={referenceUrl(item.id)} alt="Uploaded reference" /></button>)}</div>}
       </div>
