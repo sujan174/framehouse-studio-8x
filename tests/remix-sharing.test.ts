@@ -52,7 +52,7 @@ describe("private reference and remix", () => {
     expect((await listReferences(db, owner, first.id))?.map((item) => item.id)).toContain(upload.id);
     expect(await getReferenceImage(db, outsider, first.id, upload.id)).toBeNull();
     expect(await getReferenceImage(db, owner, second.id, upload.id)).toBeNull();
-    expect(await saveReference(db, outsider, first.id, await jpeg())).toBeNull();
+    expect(await saveReference(db, outsider, first.id, Buffer.from("not-an-image"))).toBeNull();
     expect(await getReferenceImage(db, owner, first.id, upload.id)).not.toBeNull();
     const valid = (await createGeneration(db, owner, first.id, { prompt: "Make the blue harbor golden", steps: 4,
       referenceUploadId: upload.id, clientRequestId: crypto.randomUUID() }))!;

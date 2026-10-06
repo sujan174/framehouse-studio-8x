@@ -2,6 +2,7 @@ import sharp from "sharp";
 import { and, count, desc, eq, isNull } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { projects, referenceImages } from "../db/schema";
+import { getProject } from "../projects/repository";
 import type { TenantContext } from "../tenant";
 
 type Database = NodePgDatabase<Record<string, never>>;
@@ -36,6 +37,7 @@ export async function listReferences(db: Database, tenant: TenantContext, projec
 }
 
 export async function saveReference(db: Database, tenant: TenantContext, projectId: string, bytes: Buffer) {
+  if (!(await getProject(db, tenant, projectId))) return null;
   const image = await normalizeReference(bytes);
   return db.transaction(async (tx) => {
     const project = await tx.select({ id: projects.id }).from(projects).where(and(eq(projects.id, projectId),
