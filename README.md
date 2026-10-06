@@ -46,3 +46,4 @@ Only a project creator or workspace admin can publish or revoke its story. Publi
 See `docs/foundation-build-brief.md` for the scope, and `CAPTURE-TEST.md` for agent capture setup.
 See `docs/verification.md` for observed local and live checks, screenshots, and deployment limitations.
 See `docs/creative-milestone.md` for the current product decisions and `docs/walkthrough-outline.md` for the camera-on demo sequence.
+See `docs/remix-sharing-milestone.md` for the reference, sharing, and verification details of the latest release.

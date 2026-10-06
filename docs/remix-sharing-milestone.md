@@ -1,0 +1,20 @@
+# Reference remix and story sharing
+
+## Product decisions
+
+- Ordinary prompt creation still uses FLUX.1 schnell. A selected project result or uploaded reference switches the composer to the explicitly labeled FLUX.2 klein 4B remix path. The stored result records its model, actual submitted prompt, and source image ID.
+- Uploads are private project records in the existing Railway PostgreSQL database. The server verifies image content, bounds input bytes and dimensions, removes metadata, and normalizes to JPEG. The worker resizes all references below Cloudflare's 512×512 limit. No new storage service or paid inference was added.
+- A story link is a snapshot of the project's title, frame order and captions when the owner or workspace admin presses Publish. Later board edits stay private. Revoke invalidates the token and all frame routes. The public page is read-only and noindex, with no prompt or internal storage URL.
+
+## Provider verification
+
+Cloudflare's [FLUX.2 klein 4B guidance](https://developers.cloudflare.com/changelog/post/2026-01-15-flux-2-klein-4b-workers-ai/) specifies multipart reference inputs smaller than 512×512. Its [pricing page](https://developers.cloudflare.com/workers-ai/platform/pricing/) lists a 10,000-neuron daily Workers Free allocation and does not list this model among those requiring a paid billing method. The account owner separately confirmed Workers Free. Two real, scoped-token reference requests returned HTTP 200 on 2026-10-06; the implementation's `scripts/check-flux-remix.ts` returned a 768×768 JPEG. No token or image bytes were printed to captured logs.
+
+## Verification and limits
+
+- Local lint, typecheck, production build, and 40 tests passed. The tests include real PostgreSQL isolation and publication checks, request body limits, duplicate remixes, provider failure, and revocation. Production dependency audit reported zero vulnerabilities at the time of the check.
+- [Namespace CI run 37425435167](https://github.com/sujan174/framehouse-studio-8x/actions/runs/37425435167) passed on commit `6f7198be7b35f8e70d442d63a5943fd06f2e3f36`, including PostgreSQL tests and build.
+- The clean checkout of that commit was uploaded by Railway CLI as deployment `8be00676-c1fc-4401-a9c4-a1706a7b206a`. Railway reported `SUCCESS`, and its pre-deploy migration ran. The CLI deployment message records the full commit and CI run. Railway CLI uploads do not populate its Git commit metadata; the clean checkout and message provide the source attestation.
+- On the live domain after that deployment, signed-out HTTP checks returned 200 for the public entry and health route, 401 for private publication and reference lists, and 404 for an unknown story token and frame. The unknown frame response was `no-store` and `noindex, nofollow`. These are negative access checks; no live published token was available for a positive signed-out page check.
+- The browser automation tool refused the local app URL under its URL policy. A user-provided desktop screenshot shows the new private/publish Storyboard state and two captioned frames without visible clipping. A mobile rendering check and authenticated live remix/publish/revoke journey remain unverified until the browser blocker is resolved or user evidence is supplied. Do not treat local tests as proof of those live interactions.
+- This project still uses a Clerk development instance and manual Railway deployment after CI. The required camera-on walkthrough remains for the assignment owner to record.
